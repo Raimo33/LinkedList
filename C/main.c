@@ -1,3 +1,14 @@
+/*================================================================================
+
+File: main.c                                                                    
+Creator: Claudio Raimondi                                                       
+Email: claudio.raimondi@pm.me                                                   
+
+created at: 2025-04-04 16:42:53                                                 
+last edited: 2025-04-04 16:42:53                                                
+
+================================================================================*/
+
 #include "linked_list.h"
 
 static void run(t_node **head, t_node **tail, char *input);
@@ -77,27 +88,51 @@ implementation:
   array of function pointers for mantainability and readability.
   static arrays for operation names and lengths to avoid repeated calls to strlen.
   static variables to keep along multiple calls.
+  //TODO avoid [i] indexing (it is an indirect sum)
 */
 static uint8_t handle_operation(t_node **head, t_node **tail, const char *command)
 {
-  static const void (*operations[])(t_node **, t_node **, const char) = { add, del, print, sort, rev, sdx, ssx };
-  static const char *op_names[] = { "ADD(", "DEL(", "PRINT", "SORT", "REV", "SDX", "SSX" };
-  static const uint8_t op_names_len[] = { 3, 3, 5, 4, 3 };
-  static const shortest_name_len = 3;
-  static const uint8_t n_operations = sizeof(operations) / sizeof(operations[0]);
+  static const void (*simple_ops[])(t_node **, t_node **) = { print, sort, rev, sdx, ssx };
+  static const char *simple_op_names[] = { "PRINT", "SORT", "REV", "SDX", "SSX" };
+  static const uint8_t simple_op_names_len[] = { 5, 4, 3, 3, 3 };
+  static const uint8_t n_simple_ops = sizeof(simple_ops) / sizeof(simple_ops[0]);
+
+  static const void (*data_ops[])(t_node **, t_node **, const char) = { add, del };
+  static const char *data_op_names[] = { "ADD(", "DEL(" };
+  static const uint8_t data_op_names_len[] = { 4, 4 };
+  static const uint8_t n_data_ops = sizeof(data_ops) / sizeof(data_ops[0]);
+
+  static const shortest_command_len = 3;
 
   const uint8_t command_len = strlen(command);
-  if (command_len < shortest_name_len) //early exit
+  if (command_len < shortest_command_len) //early exit
     goto end;
 
-  //TODO avoid [i] indexing (it is an indirect sum) 
-  for (uint8_t i = 0; i < n_operations; i++)
+  for (uint8_t i = 0; i < n_simple_ops; i++)
   {
-    if ((command_len >= op_names_len[i]) & strncmp(command, op_names[i], op_names_len[i])) //equivalent to && for integer types
+    if ((command_len >= simple_op_names_len[i]) && strncmp(command, simple_op_names[i], simple_op_names_len[i]))
     {
-      const char data = command[op_names_len[i]]; //get the character after the operation name (either a '\0' or the data)
-      operations[i](head, tail, data);
-      break;
+      simple_ops[i](head, tail);
+      goto end;
+    }
+  }
+
+  for (uint8_t i = 0; i < n_data_ops; i++)
+  {
+    const uint8_t op_name_len = data_op_names_len[i];
+
+    if ((command_len >= op_name_len) && strncmp(command, data_op_names[i], op_name_len))
+    {
+      char data = command[op_name_len];
+      if (!data) //missing data, empty parenthesis
+        goto end;
+
+      char closing_parenthesis = command[op_name_len + 1];
+      if (closing_parenthesis != ')') //missing closing parenthesis, malformed parameters
+        goto end;
+
+      data_ops[i](head, tail, data);
+      goto end;
     }
   }
 
@@ -113,7 +148,8 @@ definition:
   if n is 0, it returns true.
 
 implementation:
-  use of SWAR (SIMD within a register) to compare 8, 4, 2 bytes at a time. (not optimal for instruction cache, but 8x faster for long strings)
+  use of SWAR (SIMD within a register) to compare 8, 4, 2 bytes at a time. (not optimal for instruction cache, but 8x faster for long strings).
+  SWAR works because the endianess of the memory is the same endianess of the ALU
   unalignment is calculated to avoid misaligned memory access on architectures that don't support it.
   lazy evaulation with an accumulator variable (keep_going) to avoid branches.
   use of bitwise & instead of logical && to avoid branches.
