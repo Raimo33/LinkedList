@@ -11,12 +11,12 @@ typedef struct s_node
   struct s_node *next;
 } t_node;
 
-void run(t_node **head, char *input);
-
-void add(t_node **head, char data);
-void del(t_node **head, char data);
-void print(t_node *head);
-void sort(t_node **head); //TODO maybe also the tail
-void rev(t_node **head);
+void add(t_node **head, t_node **tail, const char data);
+void del(t_node **head, t_node **tail, const char data);
+void print(t_node *head, t_node **tail, const char data);
+void sort(t_node **head, t_node **tail, const char data);
+void rev(t_node **head, t_node **tail, const char data);
+void sdx(t_node **head, t_node **tail, const char data);
+void ssx(t_node **head, t_node **tail, const char data);
 
 #endif

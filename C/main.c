@@ -1,9 +1,8 @@
 #include "linked_list.h"
 
-static void run(t_node **head, char *input);
+static void run(t_node **head, t_node **tail, char *input);
 static uint8_t tokenize_input(char *input);
-static uint8_t handle_operation(t_node **head, const char *op_name);
-static void handle_add(t_node **head, const char *data);
+static uint8_t handle_operation(t_node **head, t_node **tail, const char *command);
 inline static bool is_space(const char c);
 static size_t strlen(const char *s);
 static bool strncmp(const char *s1, const char *s2, size_t n);
@@ -11,9 +10,10 @@ static bool strncmp(const char *s1, const char *s2, size_t n);
 int main(void)
 {
   t_node *head = NULL;
+  t_node *tail = NULL;
   char input[] = "ADD(1) ~ ADD(a) ~ ADD(a) ~ ADD(B) ~ ADD(;) ~ ADD(9) ~SORT~PRINT~DEL(b) ~DEL(B) ~PRI~REV~PRINT";
 
-  run(&head, input);
+  run(&head, &tail, input);
 }
 
 /*
@@ -25,14 +25,14 @@ implementation:
   commands are extracted from the input string one by one.
   each command is executed by calling the appropriate function.
 */
-void run(t_node **head, char *input)
+void run(t_node **head, t_node **tail, char *input)
 {
   uint8_t n_commands = tokenize_input(input);
 
   while (n_commands--)
   {
     input += is_space(input[0]); // skip leading space
-    input += handle_operation(head, input);
+    input += handle_operation(head, tail, input);
   }
 }
 
@@ -78,32 +78,31 @@ implementation:
   static arrays for operation names and lengths to avoid repeated calls to strlen.
   static variables to keep along multiple calls.
 */
-static uint8_t handle_operation(t_node **head, const char *command)
+static uint8_t handle_operation(t_node **head, t_node **tail, const char *command)
 {
-  static void (*operations[])(t_node **, const char *) = { handle_add, handle_del, handle_print, handle_sort, handle_rev };
-  static char *op_names[] = { "ADD", "DEL", "PRINT", "SORT", "REV", "SDX", "SSX" };
-  static uint8_t op_names_len[] = { 3, 3, 5, 4, 3 };
-  static uint8_t n_operations = sizeof(operations) / sizeof(operations[0]);
+  static const void (*operations[])(t_node **, t_node **, const char) = { add, del, print, sort, rev, sdx, ssx };
+  static const char *op_names[] = { "ADD(", "DEL(", "PRINT", "SORT", "REV", "SDX", "SSX" };
+  static const uint8_t op_names_len[] = { 3, 3, 5, 4, 3 };
+  static const shortest_name_len = 3;
+  static const uint8_t n_operations = sizeof(operations) / sizeof(operations[0]);
 
   const uint8_t command_len = strlen(command);
+  if (command_len < shortest_name_len) //early exit
+    goto end;
 
   //TODO avoid [i] indexing (it is an indirect sum) 
   for (uint8_t i = 0; i < n_operations; i++)
   {
-    if (command_len >= op_names_len[i] && strncmp(command, op_names[i], op_names_len[i]))
+    if ((command_len >= op_names_len[i]) & strncmp(command, op_names[i], op_names_len[i])) //equivalent to && for integer types
     {
-      const char *data = command + op_names_len[i];
-      operations[i](head, data);
+      const char data = command[op_names_len[i]]; //get the character after the operation name (either a '\0' or the data)
+      operations[i](head, tail, data);
       break;
     }
   }
 
+end:
   return command_len;
-}
-
-static void handle_add(t_node **head, const char *data)
-{
-  
 }
 
 /*
