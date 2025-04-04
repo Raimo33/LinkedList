@@ -5,12 +5,13 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-04 17:29:22                                                
+last edited: 2025-04-04 19:40:56                                                
 
 ================================================================================*/
 
 #include "linked_list.h"
 
+static void merge(t_node **head, t_node **tail, t_node *a, t_node *b);
 static void putchar(const char c);
 
 /*
@@ -94,6 +95,11 @@ void print(t_node **head, t_node **tail)
   print(current->next, tail);
 }
 
+static void putchar(const char c)
+{
+  write(1, &c, 1);
+}
+
 /*
 description:
   takes pointers to the head and tail of the singly-linked list.
@@ -102,12 +108,81 @@ description:
 implementation:
   use of mergesort because linked lists inherently don't provide random access. could be bypassed by constructing an array of pointers but that's a poor design choice O(n)...
   merge sort is the fastest known sorting algo for linked lists, even though finding the midpoint is O(n/2) = O(n).
-  use of the slow-fast pointer technique to find the midpoint of the list.
+  use of the slow-fast pointer technique to find the midpoint of the list. same performance as the doubly-linked list -> <- approach.
   implemented by changing pointers, even though a char is 1 byte and easier to copy, for better mantainability, reusability, and standard compliance.
+  use trick multiplication to avoid branches.
 */
 void sort(t_node **head, t_node **tail)
 {
+  //same as (head != NULL || tail != NULL || *head != NULL || (*head)->next != NULL)
+  const bool safe = (((uintptr_t)head * (uintptr_t)tail) && ((uintptr_t)*head * (uintptr_t)(*head)->next));
+  if (!safe)
+    return;
 
+  // Find the middle using slow-fast pointer technique
+  t_node *slow = *head;
+  t_node *fast = *head;
+
+  while (fast && fast->next)
+  {
+    slow = slow->next;
+    fast = fast->next->next;
+  }
+
+  // Split the list
+  t_node *a = *head;
+  t_node *b = slow->next;
+  slow->next = NULL;
+
+  // Recursively sort both halves, a first and b second. so that the tail pointer is updated as the end of the right half.
+  sort(&a, tail);
+  sort(&b, tail);
+
+  // Merge the sorted halves
+  merge(head, tail, a, b);
+}
+
+/*
+description:
+  takes pointers to the head and tail of the singly-linked list.
+  merges two sorted lists into one sorted list, updating head and tail respectively.
+  it assumes that head and tail pointers are not NULL. (only meant to be used by sort function)
+
+implementation:
+  bitwise & instead of logical && to avoid branches.
+  updating of the tail inside merge function to avoid having to iterate the whole list again.
+  use of binary array to avoid branches by selectively chosing a or b.
+*/
+static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
+{
+  t_node *current = NULL;
+  t_node *nodes[2] = {a, b};
+  bool idx = (a->data > b->data); //i choose the smaller one
+
+  current = nodes[idx];
+  *head = current;
+
+  while ((a != NULL) & (b != NULL)) //same as (a != NULL && b != NULL) for booleans
+  {
+    idx = (b->data < a->data); //i choose the smaller one
+
+    t_node *chosen = nodes[idx];
+    current->next = chosen;
+    current = chosen;
+
+    nodes[idx] = chosen->next;
+
+    a = nodes[0];
+    b = nodes[1];
+  }
+
+  //append the list with remaining elements
+  current->next = nodes[(a == NULL)]; //i choose the non-null one
+
+  //update the tail pointer
+  while (current->next != NULL)
+    current = current->next;
+  *tail = current;
 }
 
 /*
@@ -175,9 +250,4 @@ void ssx(t_node **head, t_node **tail)
   (*tail)->next = current;
   current->next = NULL;
   *tail = current;
-}
-
-static void putchar(const char c)
-{
-  write(1, &c, 1);
 }
