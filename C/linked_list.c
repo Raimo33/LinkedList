@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-04 17:15:45                                                
+last edited: 2025-04-04 17:29:22                                                
 
 ================================================================================*/
 
@@ -101,7 +101,8 @@ description:
 
 implementation:
   use of mergesort because linked lists inherently don't provide random access. could be bypassed by constructing an array of pointers but that's a poor design choice O(n)...
-  merge sort is the fastest known sorting algo for linked lists, even though finding the midpoint is O(n).
+  merge sort is the fastest known sorting algo for linked lists, even though finding the midpoint is O(n/2) = O(n).
+  use of the slow-fast pointer technique to find the midpoint of the list.
   implemented by changing pointers, even though a char is 1 byte and easier to copy, for better mantainability, reusability, and standard compliance.
 */
 void sort(t_node **head, t_node **tail)
@@ -146,8 +147,9 @@ description:
 
 implementation:
   implemented by iterating the whole list to find the last node, in O(n).
-  it is a compromise between performance and simplicity.
-  doing the shift in O(1) would require a doubly-linked list, which in assembly is a pain in the a** to implement.
+  it is a compromise between performance and simplicity. doing it in O(1) would require:
+   - a doubly-linked list, which is a pain in the a** to implement in assembly.
+   - a third pointer to the second to last node, which is not allowed by the assignment.
 */
 void sdx(t_node **head, t_node **tail)
 {

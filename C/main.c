@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-04 16:42:53                                                
+last edited: 2025-04-04 17:29:22                                                
 
 ================================================================================*/
 
@@ -110,7 +110,9 @@ static uint8_t handle_operation(t_node **head, t_node **tail, const char *comman
 
   for (uint8_t i = 0; i < n_simple_ops; i++)
   {
-    if ((command_len >= simple_op_names_len[i]) && strncmp(command, simple_op_names[i], simple_op_names_len[i]))
+    const uint8_t op_name_len = simple_op_names_len[i];
+
+    if ((command_len >= op_name_len) && strncmp(command, simple_op_names[i], op_name_len))
     {
       simple_ops[i](head, tail);
       goto end;
@@ -123,11 +125,11 @@ static uint8_t handle_operation(t_node **head, t_node **tail, const char *comman
 
     if ((command_len >= op_name_len) && strncmp(command, data_op_names[i], op_name_len))
     {
-      char data = command[op_name_len];
+      const char data = command[op_name_len];
       if (!data) //missing data, empty parenthesis
         goto end;
 
-      char closing_parenthesis = command[op_name_len + 1];
+      const char closing_parenthesis = command[op_name_len + 1];
       if (closing_parenthesis != ')') //missing closing parenthesis, malformed parameters
         goto end;
 
