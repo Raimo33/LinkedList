@@ -3,6 +3,9 @@
 static void run(t_node **head, char *input);
 static uint8_t tokenize_input(char *input);
 static uint8_t handle_operation(t_node **head, const char *op_name);
+static void handle_add(t_node **head, const char *data);
+inline static bool is_space(const char c);
+static size_t strlen(const char *s);
 static bool strncmp(const char *s1, const char *s2, size_t n);
 
 int main(void)
@@ -27,7 +30,10 @@ void run(t_node **head, char *input)
   uint8_t n_commands = tokenize_input(input);
 
   while (n_commands--)
+  {
+    input += is_space(input[0]); // skip leading space
     input += handle_operation(head, input);
+  }
 }
 
 /*
@@ -47,7 +53,7 @@ static uint8_t tokenize_input(char *input)
   char c = *input;
   bool is_delim = false;
 
-  while (c != '\0')
+  while (c)
   {
     is_delim = (c == '~');
 
@@ -75,19 +81,16 @@ implementation:
 static uint8_t handle_operation(t_node **head, const char *command)
 {
   static void (*operations[])(t_node **, const char *) = { handle_add, handle_del, handle_print, handle_sort, handle_rev };
-  static char *op_names[] = { "ADD", "DEL", "PRINT", "SORT", "REV" };
+  static char *op_names[] = { "ADD", "DEL", "PRINT", "SORT", "REV", "SDX", "SSX" };
   static uint8_t op_names_len[] = { 3, 3, 5, 4, 3 };
   static uint8_t n_operations = sizeof(operations) / sizeof(operations[0]);
 
   const uint8_t command_len = strlen(command);
 
-  if (command_len < 3)
-    goto end;
-
   //TODO avoid [i] indexing (it is an indirect sum) 
   for (uint8_t i = 0; i < n_operations; i++)
   {
-    if (strncmp(command, op_names[i], op_names_len[i]))
+    if (command_len >= op_names_len[i] && strncmp(command, op_names[i], op_names_len[i]))
     {
       const char *data = command + op_names_len[i];
       operations[i](head, data);
@@ -95,8 +98,12 @@ static uint8_t handle_operation(t_node **head, const char *command)
     }
   }
 
-end:
   return command_len;
+}
+
+static void handle_add(t_node **head, const char *data)
+{
+  
 }
 
 /*
@@ -182,4 +189,28 @@ static bool strncmp(const char *s1, const char *s2, size_t n)
   }
 
   return (a == b);
+}
+
+/*
+description:
+  checks if a character is a whitespace (as defined by man isspace).
+  returns true if it is, false otherwise.
+
+implementation:
+  use of ranges of ASCII values to reduce instructions.
+  use of bitwise | insteado of logical || to avoid branches.
+*/
+inline static bool is_space(const char c)
+{
+  return ((c >= '\t') & (c <= 'r')) | (c == ' ');
+}
+
+static size_t strlen(const char *s)
+{
+  size_t len = 0;
+
+  while (*s++)
+    len++;
+
+  return len;
 }
