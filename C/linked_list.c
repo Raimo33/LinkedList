@@ -5,14 +5,17 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-04 19:40:56                                                
+last edited: 2025-04-05 16:59:14                                                
 
 ================================================================================*/
+
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "linked_list.h"
 
 static void merge(t_node **head, t_node **tail, t_node *a, t_node *b);
-static void putchar(const char c);
+static void m_putchar(const char c);
 
 /*
 description:
@@ -62,7 +65,7 @@ void del(t_node **head, t_node **tail, const char data)
   if (current == NULL)
     return;
 
-  const t_node *next = current->next; //i save the next node to avoid use after free
+  t_node *next = current->next; //i save the next node to avoid use after free
 
   if (current->data == data)
   {
@@ -84,18 +87,18 @@ implementation:
   recursive function for lower instruction count (better for the instruction cache).
   prints forwards instead of backwards to avoid the need to keep the stack of functions growing (parameter registers can be reused). aka tail-call optimization.
 */
-void print(t_node **head, t_node **tail)
+void print(t_node **head)
 {
-  const t_node *current = *head;
+  t_node *current = *head;
 
   if (current == NULL)
-    putchar('\n');
+    m_putchar('\n');
 
-  putchar(current->data);
-  print(current->next, tail);
+  m_putchar(current->data);
+  print(&current->next);
 }
 
-static void putchar(const char c)
+static void m_putchar(const char c)
 {
   write(1, &c, 1);
 }
@@ -151,7 +154,7 @@ description:
 implementation:
   bitwise & instead of logical && to avoid branches.
   updating of the tail inside merge function to avoid having to iterate the whole list again.
-  use of binary array to avoid branches by selectively chosing a or b.
+  use of binary array to completely avoid branches by selectively chosing a or b.
 */
 static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
 {
@@ -199,6 +202,7 @@ void rev(t_node **head, t_node **tail)
   t_node *prev = NULL;
   t_node *current = *head;
   t_node *next = NULL;
+  t_node *original_head = *head;
 
   while (current != NULL)
   {
@@ -209,9 +213,7 @@ void rev(t_node **head, t_node **tail)
   }
 
   *head = prev;
-
-  if (*head == NULL)
-    *tail = NULL;
+  *tail = original_head;
 }
 
 /*

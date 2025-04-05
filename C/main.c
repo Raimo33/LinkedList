@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-04 17:29:22                                                
+last edited: 2025-04-05 16:59:14                                                
 
 ================================================================================*/
 
@@ -14,10 +14,11 @@ last edited: 2025-04-04 17:29:22
 static void run(t_node **head, t_node **tail, char *input);
 static uint8_t tokenize_input(char *input);
 static uint8_t handle_operation(t_node **head, t_node **tail, const char *command);
-inline static bool is_space(const char c);
-static size_t strlen(const char *s);
-static bool strncmp(const char *s1, const char *s2, size_t n);
+inline static bool m_isspace(const char c);
+static size_t m_strlen(const char *s);
+static bool m_strncmp(const char *s1, const char *s2, size_t n);
 
+#include <stdio.h> //TODO remove
 int main(void)
 {
   t_node *head = NULL;
@@ -42,8 +43,9 @@ void run(t_node **head, t_node **tail, char *input)
 
   while (n_commands--)
   {
-    input += is_space(input[0]); // skip leading space
+    input += m_isspace(input[0]); // skip leading space if any
     input += handle_operation(head, tail, input);
+    input += (n_commands > 0); // skip the delimiter, unless it's the last command
   }
 }
 
@@ -85,60 +87,31 @@ definition:
   returns the length of the command string.
 
 implementation:
-  array of function pointers for mantainability and readability.
-  static arrays for operation names and lengths to avoid repeated calls to strlen.
-  static variables to keep along multiple calls.
-  //TODO avoid [i] indexing (it is an indirect sum)
+  i considered:
+    - array of function pointers + array of strings + array of lengths (too many registers needed)
+    - switch case by comparing just the first char (not correct, no sanitization, not scalable)
+    - perfect hash function (not correct, false positives, development time overhead)
+  in the end an if-else forest seems the best
 */
 static uint8_t handle_operation(t_node **head, t_node **tail, const char *command)
 {
-  static const void (*simple_ops[])(t_node **, t_node **) = { print, sort, rev, sdx, ssx };
-  static const char *simple_op_names[] = { "PRINT", "SORT", "REV", "SDX", "SSX" };
-  static const uint8_t simple_op_names_len[] = { 5, 4, 3, 3, 3 };
-  static const uint8_t n_simple_ops = sizeof(simple_ops) / sizeof(simple_ops[0]);
+  const uint8_t command_len = m_strlen(command);
 
-  static const void (*data_ops[])(t_node **, t_node **, const char) = { add, del };
-  static const char *data_op_names[] = { "ADD(", "DEL(" };
-  static const uint8_t data_op_names_len[] = { 4, 4 };
-  static const uint8_t n_data_ops = sizeof(data_ops) / sizeof(data_ops[0]);
+  if (m_strncmp(command, "ADD(", 4))
+    add(head, tail, command[command_len]); 
+  else if (m_strncmp(command, "DEL(", 4))
+    del(head, tail, command[command_len]);
+  else if (m_strncmp(command, "SORT", 4))
+    sort(head, tail);
+  else if (m_strncmp(command, "REV", 3))
+    rev(head, tail);
+  else if (m_strncmp(command, "PRINT", 5))
+    print(head);
+  else if (m_strncmp(command, "SDX", 3))
+    sdx(head, tail);
+  else if (m_strncmp(command, "SSX", 3))
+    ssx(head, tail);
 
-  static const shortest_command_len = 3;
-
-  const uint8_t command_len = strlen(command);
-  if (command_len < shortest_command_len) //early exit
-    goto end;
-
-  for (uint8_t i = 0; i < n_simple_ops; i++)
-  {
-    const uint8_t op_name_len = simple_op_names_len[i];
-
-    if ((command_len >= op_name_len) && strncmp(command, simple_op_names[i], op_name_len))
-    {
-      simple_ops[i](head, tail);
-      goto end;
-    }
-  }
-
-  for (uint8_t i = 0; i < n_data_ops; i++)
-  {
-    const uint8_t op_name_len = data_op_names_len[i];
-
-    if ((command_len >= op_name_len) && strncmp(command, data_op_names[i], op_name_len))
-    {
-      const char data = command[op_name_len];
-      if (!data) //missing data, empty parenthesis
-        goto end;
-
-      const char closing_parenthesis = command[op_name_len + 1];
-      if (closing_parenthesis != ')') //missing closing parenthesis, malformed parameters
-        goto end;
-
-      data_ops[i](head, tail, data);
-      goto end;
-    }
-  }
-
-end:
   return command_len;
 }
 
@@ -146,86 +119,41 @@ end:
 definition:
   compares the first n characters of two strings.
   returns true if they are equal, false otherwise.
-  expects both strings to be at least n characters long (Undefined behavior otherwise).
+  returns false if either s1 or s2 are NULL.
+  returns false if either s1 or s2 are shorter than n.
   if n is 0, it returns true.
 
 implementation:
-  use of SWAR (SIMD within a register) to compare 8, 4, 2 bytes at a time. (not optimal for instruction cache, but 8x faster for long strings).
-  SWAR works because the endianess of the memory is the same endianess of the ALU
-  unalignment is calculated to avoid misaligned memory access on architectures that don't support it.
   lazy evaulation with an accumulator variable (keep_going) to avoid branches.
   use of bitwise & instead of logical && to avoid branches.
 */
-static bool strncmp(const char *s1, const char *s2, size_t n)
+static bool m_strncmp(const char *s1, const char *s2, size_t n)
 {
-  uint8_t unalignment = (-(uintptr_t)s1) & 7; // number of bytes until the next 8-byte boundary
+  if (!s1 | !s2) //equivalent of (s1 == NULL || s2 == NULL)
+    return false;
 
-  //reuse the same variables, in the max possible size
-  uint64_t a = 0;
-  uint64_t b = 0;
+  char a = *s1;
+  char b = *s2;
 
-  bool keep_going = (n > 0);
-  while (keep_going & unalignment) //equivalent to (keep_going > 0 && unalignment > 0) for integer types
+  bool keep_going;
+  keep_going = (n > 0);
+  keep_going &= (a != '\0') & (b != '\0');
+  
+  while (keep_going)
   {
-    a = *(uint8_t *)s1;
-    b = *(uint8_t *)s2;
-
-    keep_going = (a != b);
+    keep_going = (a == b);
 
     s1++;
     s2++;
+    a = *s1;
+    b = *s2;
+    keep_going &= (a != '\0') & (b != '\0');
+    
     n--;
-    unalignment--;
-
     keep_going &= (n > 0);
   }
-
-  keep_going &= (n >= 8);
-  while (keep_going)
-  {
-    a = *(uint64_t *)s1;
-    b = *(uint64_t *)s2;
-
-    keep_going = (a != b);
-
-    s1 += 8;
-    s2 += 8;
-    n -= 8;
-
-    keep_going &= (n >= 8);
-  }
-
-  keep_going &= (n >= 4);
-  while (keep_going)
-  {
-    a = *(uint32_t *)s1;
-    b = *(uint32_t *)s2;
-
-    keep_going = (a != b);
-
-    s1 += 4;
-    s2 += 4;
-    n -= 4;
-
-    keep_going &= (n >= 4);
-  }
-
-  keep_going &= (n >= 2);
-  while (n >= 2)
-  {
-    a = *(uint16_t *)s1;
-    b = *(uint16_t *)s2;
-
-    keep_going = (a != b);
-
-    s1 += 2;
-    s2 += 2;
-    n -= 2;
-
-    keep_going &= (n >= 2);
-  }
-
-  return (a == b);
+  
+  return keep_going & (a == b);
 }
 
 /*
@@ -237,12 +165,12 @@ implementation:
   use of ranges of ASCII values to reduce instructions.
   use of bitwise | insteado of logical || to avoid branches.
 */
-inline static bool is_space(const char c)
+inline static bool m_isspace(const char c)
 {
-  return ((c >= '\t') & (c <= 'r')) | (c == ' ');
+  return ((c >= '\t') & (c <= '\r')) | (c == ' ');
 }
 
-static size_t strlen(const char *s)
+static size_t m_strlen(const char *s)
 {
   size_t len = 0;
 
