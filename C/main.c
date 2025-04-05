@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-05 16:59:14                                                
+last edited: 2025-04-05 18:21:09                                                
 
 ================================================================================*/
 
@@ -23,7 +23,7 @@ int main(void)
 {
   t_node *head = NULL;
   t_node *tail = NULL;
-  char input[] = "ADD(1) ~ ADD(a) ~ ADD(a) ~ ADD(B) ~ ADD(;) ~ ADD(9) ~SORT~PRINT~DEL(b) ~DEL(B) ~PRI~REV~PRINT";
+  char input[] = "ADD(1) ~ ADD(1) ~ ADD(3) ~ ADD(4) ~ ADD(5) ~ SORT ~ PRINT";
 
   run(&head, &tail, input);
 }
@@ -44,6 +44,7 @@ void run(t_node **head, t_node **tail, char *input)
   while (n_commands--)
   {
     input += m_isspace(input[0]); // skip leading space if any
+    printf("command: %s\n", input); //TODO remove
     input += handle_operation(head, tail, input);
     input += (n_commands > 0); // skip the delimiter, unless it's the last command
   }
@@ -98,9 +99,9 @@ static uint8_t handle_operation(t_node **head, t_node **tail, const char *comman
   const uint8_t command_len = m_strlen(command);
 
   if (m_strncmp(command, "ADD(", 4))
-    add(head, tail, command[command_len]); 
+    add(head, tail, command[4]); 
   else if (m_strncmp(command, "DEL(", 4))
-    del(head, tail, command[command_len]);
+    del(head, tail, command[4]);
   else if (m_strncmp(command, "SORT", 4))
     sort(head, tail);
   else if (m_strncmp(command, "REV", 3))
@@ -120,12 +121,12 @@ definition:
   compares the first n characters of two strings.
   returns true if they are equal, false otherwise.
   returns false if either s1 or s2 are NULL.
-  returns false if either s1 or s2 are shorter than n.
   if n is 0, it returns true.
 
 implementation:
   lazy evaulation with an accumulator variable (keep_going) to avoid branches.
   use of bitwise & instead of logical && to avoid branches.
+  generalized the function by handling edge cases even though it wont ever be called with such
 */
 static bool m_strncmp(const char *s1, const char *s2, size_t n)
 {
@@ -135,25 +136,26 @@ static bool m_strncmp(const char *s1, const char *s2, size_t n)
   char a = *s1;
   char b = *s2;
 
+  bool is_equal = (a == b);
   bool keep_going;
   keep_going = (n > 0);
   keep_going &= (a != '\0') & (b != '\0');
   
   while (keep_going)
   {
-    keep_going = (a == b);
+    keep_going = is_equal = (a == b);
 
     s1++;
     s2++;
     a = *s1;
     b = *s2;
-    keep_going &= (a != '\0') & (b != '\0');
-    
     n--;
+
+    keep_going &= (a != '\0') & (b != '\0');
     keep_going &= (n > 0);
   }
-  
-  return keep_going & (a == b);
+
+  return is_equal & (n == 0);
 }
 
 /*

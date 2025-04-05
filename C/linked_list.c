@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-05 16:59:14                                                
+last edited: 2025-04-05 18:21:09                                                
 
 ================================================================================*/
 
@@ -55,27 +55,42 @@ description:
   if the string becomes empty, head and tail will point to NULL.
 
 implementation:
-  recursive function for lower instruction count (better for the instruction cache).
-  deletes forwards instead of backwards to avoid the need to keep the stack of functions growing (parameter registers can be reused). aka tail-call optimization.
+  iterative function to avoid stack bloat.
 */
 void del(t_node **head, t_node **tail, const char data)
 {
-  t_node *current = *head;
-
-  if (current == NULL)
+  if (*head == NULL)
     return;
 
-  t_node *next = current->next; //i save the next node to avoid use after free
+  t_node *current = *head;
+  t_node *prev = NULL;
 
-  if (current->data == data)
+  while (current != NULL)
   {
-    *head = next;
-    free(current);
-    if (*head == NULL)
-      *tail = NULL;
+    if (current->data == data)
+    {
+      if (prev == NULL) // deleting the head
+      {
+        *head = current->next;
+        free(current);
+        current = *head;
+      }
+      else
+      {
+        prev->next = current->next;
+        free(current);
+        current = prev->next;
+      }
+    }
+    else
+    {
+      prev = current;
+      current = current->next;
+    }
   }
 
-  del(&next, tail, data);
+  if (*head == NULL)
+    *tail = NULL;
 }
 
 /*
@@ -91,8 +106,11 @@ void print(t_node **head)
 {
   t_node *current = *head;
 
-  if (current == NULL)
+  if (!current)
+  {
     m_putchar('\n');
+    return;
+  }
 
   m_putchar(current->data);
   print(&current->next);
@@ -117,29 +135,29 @@ implementation:
 */
 void sort(t_node **head, t_node **tail)
 {
-  //same as (head != NULL || tail != NULL || *head != NULL || (*head)->next != NULL)
-  const bool safe = (((uintptr_t)head * (uintptr_t)tail) && ((uintptr_t)*head * (uintptr_t)(*head)->next));
-  if (!safe)
+  if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
     return;
 
   // Find the middle using slow-fast pointer technique
   t_node *slow = *head;
   t_node *fast = *head;
-
-  while (fast && fast->next)
+  while (fast->next)
   {
     slow = slow->next;
     fast = fast->next->next;
   }
+
+  printf("FAST: %p\n", fast);
+  printf("SLOW: %p\n", slow);
 
   // Split the list
   t_node *a = *head;
   t_node *b = slow->next;
   slow->next = NULL;
 
-  // Recursively sort both halves, a first and b second. so that the tail pointer is updated as the end of the right half.
-  sort(&a, tail);
-  sort(&b, tail);
+  // Recursively sort both halves
+  sort(&a, &slow);
+  sort(&b, &fast);
 
   // Merge the sorted halves
   merge(head, tail, a, b);
@@ -158,6 +176,8 @@ implementation:
 */
 static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
 {
+  printf("MERGE CALLED\n");
+
   t_node *current = NULL;
   t_node *nodes[2] = {a, b};
   bool idx = (a->data > b->data); //i choose the smaller one
@@ -199,6 +219,9 @@ implementation:
 */
 void rev(t_node **head, t_node **tail)
 {
+  if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
+    return;
+
   t_node *prev = NULL;
   t_node *current = *head;
   t_node *next = NULL;
