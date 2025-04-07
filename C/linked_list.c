@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-05 18:21:09                                                
+last edited: 2025-04-07 18:36:59                                                
 
 ================================================================================*/
 
@@ -95,18 +95,15 @@ implementation:
   recursive function for lower instruction count (better for the instruction cache).
   prints forwards instead of backwards to avoid the need to keep the stack of functions growing (parameter registers can be reused). aka tail-call optimization.
 */
-void print(t_node **head)
+void print(t_node **head, t_node **tail, const char data)
 {
   t_node *current = *head;
 
   if (current == NULL)
-  {
-    m_putchar('\n');
     return;
-  }
 
   m_putchar(current->data);
-  print(&current->next);
+  print(&current->next, NULL, NULL);
 }
 
 static void m_putchar(const char c)
@@ -126,7 +123,7 @@ implementation:
   implemented by changing pointers, even though a char is 1 byte and easier to copy, for better mantainability, reusability, and standard compliance.
   use trick multiplication to avoid branches.
 */
-void sort(t_node **head, t_node **tail)
+void sort(t_node **head, t_node **tail, const char data)
 {
   if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
     return;
@@ -151,8 +148,8 @@ void sort(t_node **head, t_node **tail)
   slow->next = NULL;
 
   // Recursively sort both halves
-  sort(&a, &slow);
-  sort(&b, &fast);
+  sort(&a, &slow, 0);
+  sort(&b, &fast, 0);
 
   // Merge the sorted halves
   merge(head, tail, a, b);
@@ -212,7 +209,7 @@ implementation:
   imlemented by changing pointers, even though a char is 1 byte and easier to copy, for better mantainability, reusability, and standard compliance.
   iterative function as the recursive one would either incur in stack bloat or require having a doubly-linked list.
 */
-void rev(t_node **head, t_node **tail)
+void rev(t_node **head, t_node **tail, const char data)
 {
   if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
     return;
@@ -232,42 +229,4 @@ void rev(t_node **head, t_node **tail)
 
   *head = prev;
   *tail = original_head;
-}
-
-/*
-description:
-  takes pointers to the head and tail of the singly-linked list.
-  shifts all the elements to the right by one position, in a circular fashion.
-  does nothing if the list is empty.
-
-implementation:
-  implemented by iterating the whole list to find the last node, in O(n).
-  it is a compromise between performance and simplicity. doing it in O(1) would require:
-   - a doubly-linked list, which is a pain in the a** to implement in assembly.
-   - a third pointer to the second to last node, which is not allowed by the assignment.
-*/
-void sdx(t_node **head, t_node **tail)
-{
-  //TODO
-}
-
-/*
-description:
-  takes pointers to the head and tail of the singly-linked list.
-  shifts all the elements to the left by one position, in a circular fashion.
-  does nothing if the list is empty.
-
-implementation:
-  implemented by incrementing head and tail pointers, without iterating the whole list. O(1).
-*/
-void ssx(t_node **head, t_node **tail)
-{
-  if (*head == NULL)
-    return;
-
-  t_node *current = *head;
-  *head = current->next;
-  (*tail)->next = current;
-  current->next = NULL;
-  *tail = current;
 }
