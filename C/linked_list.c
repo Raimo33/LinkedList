@@ -59,38 +59,31 @@ implementation:
 */
 void del(t_node **head, t_node **tail, const char data)
 {
-  if (*head == NULL)
-    return;
-
   t_node *current = *head;
   t_node *prev = NULL;
-
+  t_node *last = NULL;
+  
   while (current != NULL)
   {
     if (current->data == data)
     {
-      if (prev == NULL) // deleting the head
-      {
-        *head = current->next;
-        free(current);
-        current = *head;
-      }
-      else
-      {
-        prev->next = current->next;
-        free(current);
-        current = prev->next;
-      }
+      t_node *to_delete = current;
+      
+      if (prev == NULL) //the node to delete is the ead
+        *head = current = current->next;
+      else //skip the node by changing pointers
+        prev->next = current = current->next;
+          
+      free(to_delete);
     }
     else
     {
-      prev = current;
+      last = prev = current;
       current = current->next;
     }
   }
 
-  if (*head == NULL)
-    *tail = NULL;
+  *tail = last;
 }
 
 /*
@@ -106,7 +99,7 @@ void print(t_node **head)
 {
   t_node *current = *head;
 
-  if (!current)
+  if (current == NULL)
   {
     m_putchar('\n');
     return;
@@ -138,10 +131,12 @@ void sort(t_node **head, t_node **tail)
   if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
     return;
 
+  exit(0);
+
   // Find the middle using slow-fast pointer technique
   t_node *slow = *head;
   t_node *fast = *head;
-  while (fast->next)
+  while (fast->next && fast->next->next)
   {
     slow = slow->next;
     fast = fast->next->next;

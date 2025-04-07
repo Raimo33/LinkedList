@@ -18,14 +18,45 @@ inline static bool m_isspace(const char c);
 static size_t m_strlen(const char *s);
 static bool m_strncmp(const char *s1, const char *s2, size_t n);
 
-#include <stdio.h> //TODO remove
+//TODO add tests for sdx and ssx?
+
 int main(void)
 {
   t_node *head = NULL;
   t_node *tail = NULL;
-  char input[] = "ADD(1) ~ ADD(1) ~ ADD(3) ~ ADD(4) ~ ADD(5) ~ SORT ~ PRINT";
 
-  run(&head, &tail, input);
+  char input12[] = "ADD(1)ADD(2) ~ ADD(3) ~ PRINT";
+  char expected12[] = "3";
+  run(&head, &tail, input12);
+  printf("Expected: %s\n", expected12);
+  reset_list(&head, &tail);
+  
+  //TODO add test: malformed ADD
+  //TODO add test: add \0
+  //TODO add test: add two chars in same command
+  //TODO add test: add one
+  //TODO add test: add same element twice
+  
+  //TODO sorting test: malformed SORT
+  //TODO sorting test: normal
+  //TODO sorting test: empty
+  //TODO sorting test: one element
+  //TODO sorting test: odd elements
+  //TODO sorting test: even elements
+  //TODO sorting test: already sorted
+  
+  //TODO delete test: malformed DEL
+  //TODO delete test: del \0
+  //TODO delete test: del two chars in same command
+  //TODO delete test: delete multiple elements
+  //TODO delete test: delete non existing element
+  //TODO delete test: delete empty list
+
+  
+  //TODO rev test: malformed REV
+  //TODO rev test: 
+  
+  return 0;
 }
 
 /*
@@ -44,7 +75,6 @@ void run(t_node **head, t_node **tail, char *input)
   while (n_commands--)
   {
     input += m_isspace(input[0]); // skip leading space if any
-    printf("command: %s\n", input); //TODO remove
     input += handle_operation(head, tail, input);
     input += (n_commands > 0); // skip the delimiter, unless it's the last command
   }
