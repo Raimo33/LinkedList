@@ -25,19 +25,24 @@ int main(void)
   t_node *head = NULL;
   t_node *tail = NULL;
 
-  char input12[] = "ADD(1)ADD(2) ~ ADD(3) ~ PRINT";
+  char input12[] = "ADD(1) ~ PRINT";
   char expected12[] = "3";
   run(&head, &tail, input12);
   printf("Expected: %s\n", expected12);
   reset_list(&head, &tail);
+
+  //TODO parsing test: two adjacent separators
+  //TODO parsing test: three adjacent separators
+  //TODO parsing test: separator at end
+  //TODO parsing test: separator at start
   
-  //TODO add test: malformed ADD
+  //TODO add test: malformed ADD: ADDD(x) ~ AADD(x) ~ AD D(x) ~ ADD (x) ~ ADD() ~ ADD
   //TODO add test: add \0
   //TODO add test: add two chars in same command
   //TODO add test: add one
   //TODO add test: add same element twice
   
-  //TODO sorting test: malformed SORT
+  //TODO sorting test: malformed SORT: SO RT ~ SORTT ~ SORT() ~ SSORT
   //TODO sorting test: normal
   //TODO sorting test: empty
   //TODO sorting test: one element
@@ -45,7 +50,7 @@ int main(void)
   //TODO sorting test: even elements
   //TODO sorting test: already sorted
   
-  //TODO delete test: malformed DEL
+  //TODO delete test: malformed DEL: DE L(x) ~ DELL(x) ~ DDEL(x) ~ DEL() ~ DEL
   //TODO delete test: del \0
   //TODO delete test: del two chars in same command
   //TODO delete test: delete multiple elements
@@ -53,8 +58,38 @@ int main(void)
   //TODO delete test: delete empty list
 
   
-  //TODO rev test: malformed REV
-  //TODO rev test: 
+  //TODO rev test: malformed REV: R EV ~ RREV ~ REVV ~ REV(x)
+  //TODO rev test: rev empty list
+  //TODO rev test: rev one element
+  //TODO rev test: rev two elements
+  //TODO rev test: rev 3 elements
+  //TODO rev test: rev twice in a row
+
+  //TODO print test: malformed PRINT: P RINT ~ PPRINT ~ PRINTT ~ PRINT()
+  //TODO print test: print empty list
+  //TODO print test: print 1 element
+  //TODO print test: print twice in a row
+
+  //TODO sort test: malformed SORT: S ORT ~ SSORT ~ SORTT ~ SORT()
+  //TODO sort test: sort empty list
+  //TODO sort test: sort 1 element
+  //TODO sort test: sort odd number of elements
+  //TODO sort test: sort even number of elements
+  //TODO sort test: sort already sorted
+  //TODO sort test: sort list of same elements
+  //TODO sort test: sort twice in a row
+
+  //TODO sdx test: malformed SDX: S DX ~ SSDX ~ SDXX ~ SDX()
+  //TODO sdx test: sdx empty list
+  //TODO sdx test: sdx 1 element
+  //TODO sdx test: sdx 2 elements
+  //TODO sdx test: sdx twice in a row
+
+  //TODO ssx test: malformed SSX: S SX ~ SSXX ~ SSX() ~ SSX(x)
+  //TODO ssx test: ssx empty list
+  //TODO ssx test: ssx 1 element
+  //TODO ssx test: ssx 2 elements
+  //TODO ssx test: ssx twice in a row
   
   return 0;
 }
