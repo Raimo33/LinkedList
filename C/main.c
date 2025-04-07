@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-05 18:21:09                                                
+last edited: 2025-04-07 15:30:17                                                
 
 ================================================================================*/
 
@@ -18,66 +18,209 @@ inline static bool m_isspace(const char c);
 static size_t m_strlen(const char *s);
 static bool m_strncmp(const char *s1, const char *s2, size_t n);
 
-//TODO add tests for sdx and ssx?
+#define RUN_TEST(input, expected) \
+  run(&head, &tail, input); \
+  head = tail = NULL;
 
 int main(void)
 {
   t_node *head = NULL;
   t_node *tail = NULL;
 
-  char input12[] = "ADD(1) ~ PRINT";
-  char expected12[] = "3";
-  run(&head, &tail, input12);
-  printf("Expected: %s\n", expected12);
-  reset_list(&head, &tail);
+  char *input = NULL;
+  char *expected = NULL;
 
-  //TODO parsing test: two adjacent separators
-  //TODO parsing test: three adjacent separators
-  //TODO parsing test: separator at end
-  //TODO parsing test: separator at start
-  
-  //TODO add test: malformed ADD: ADDD(x) ~ AADD(x) ~ AD D(x) ~ ADD (x) ~ ADD() ~ ADD
-  //TODO add test: add \0
-  //TODO add test: add two chars in same command
-  //TODO add test: add one
-  //TODO add test: add same element twice
-  
-  //TODO sorting test: malformed SORT: SO RT ~ SORTT ~ SORT() ~ SSORT
-  //TODO sorting test: normal
-  //TODO sorting test: empty
-  //TODO sorting test: one element
-  //TODO sorting test: odd elements
-  //TODO sorting test: even elements
-  //TODO sorting test: already sorted
-  
-  //TODO delete test: malformed DEL: DE L(x) ~ DELL(x) ~ DDEL(x) ~ DEL() ~ DEL
-  //TODO delete test: del \0
-  //TODO delete test: del two chars in same command
-  //TODO delete test: delete multiple elements
-  //TODO delete test: delete non existing element
-  //TODO delete test: delete empty list
+  //Parsing - two adjacent separators
+  input = "~~";
+  expected = "";
+  RUN_TEST(input, expected);
 
-  
-  //TODO rev test: malformed REV: R EV ~ RREV ~ REVV ~ REV(x)
-  //TODO rev test: rev empty list
-  //TODO rev test: rev one element
-  //TODO rev test: rev two elements
-  //TODO rev test: rev 3 elements
-  //TODO rev test: rev twice in a row
+  //Parsing - three adjacent separators
+  input = "~~~";
+  expected = "";
+  RUN_TEST(input, expected);
 
-  //TODO print test: malformed PRINT: P RINT ~ PPRINT ~ PRINTT ~ PRINT()
-  //TODO print test: print empty list
-  //TODO print test: print 1 element
-  //TODO print test: print twice in a row
+  //Parsing - separator at end
+  input = "ADD(x)~";
+  expected = "";
+  RUN_TEST(input, expected);
 
-  //TODO sort test: malformed SORT: S ORT ~ SSORT ~ SORTT ~ SORT()
-  //TODO sort test: sort empty list
-  //TODO sort test: sort 1 element
-  //TODO sort test: sort odd number of elements
-  //TODO sort test: sort even number of elements
-  //TODO sort test: sort already sorted
-  //TODO sort test: sort list of same elements
-  //TODO sort test: sort twice in a row
+  //Add - malformed ADD
+  input = "ADDD(x) ~ AADD(x) ~ AD D(x) ~ ADD (x) ~ ADD() ~ ADD ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Add - add '\0'
+  input = "ADD('\0') ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Add - add two chars in same command
+  input = "ADD(ab) ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Add - add one
+  input = "ADD(a) ~ PRINT";
+  expected = "a";
+  RUN_TEST(input, expected);
+
+  //Add - add same element twice
+  input = "ADD(a) ~ ADD(a) ~ PRINT";
+  expected = "aa";
+
+  //Sort - malformed SORT
+  input = "ADD(2) ~ ADD(1) ~ SORTT ~ S ORT ~ SORT() ~ SSORT ~ PRINT";
+  expected = "21";
+  RUN_TEST(input, expected);
+
+  //Sort - normal
+  input = "ADD(2) ~ ADD(1) ~ SORT ~ PRINT";
+  expected = "12";
+  RUN_TEST(input, expected);
+
+  //Sort - empty
+  input = "SORT ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Sort - one element
+  input = "ADD(1) ~ SORT ~ PRINT";
+  expected = "1";
+  RUN_TEST(input, expected);
+
+  //Sort - odd # of elements
+  input = "ADD(3) ~ ADD(1) ~ ADD(2) ~ SORT ~ PRINT";
+  expected = "123";
+  RUN_TEST(input, expected);
+
+  //Sort - even # of elements
+  input = "ADD(4) ~ ADD(2) ~ ADD(3) ~ ADD(1) ~ SORT ~ PRINT";
+  expected = "1234";
+  RUN_TEST(input, expected);
+
+  //Sort - already sorted
+  input = "ADD(1) ~ ADD(2) ~ ADD(3) ~ ADD(4) ~ SORT ~ PRINT";
+  expected = "1234";
+  RUN_TEST(input, expected);
+
+  //Delete - malformed DELETE
+  input = "ADD(x) DE L(x) ~ DELL(x) ~ DDEL(x) ~ DEL() ~ DEL ~ PRINT";
+  expected = "x";
+  RUN_TEST(input, expected);
+
+  //Delete - delete '\0'
+  input = "ADD(x) ~ DEL('\0') ~ PRINT";
+  expected = "x";
+  RUN_TEST(input, expected);
+
+  //Delete - delete two chars in same command
+  input = "ADD(ab) ~ DEL(ab) ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Delete - delete multiple elements
+  input = "ADD(x) ~ ADD(y) ~ ADD(x) ~ DEL(x) ~ PRINT";
+  expected = "y";
+  RUN_TEST(input, expected);
+
+  //Delete - delete non existing element
+  input = "ADD(x) ~ DEL(y) ~ PRINT";
+  expected = "x";
+  RUN_TEST(input, expected);
+
+  //Delete - delete empty list
+  input = "DEL(x) ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Rev - malformed REV
+  input = "ADD(x) ~ R EV ~ RREV ~ REVV ~ REV(x) ~ PRINT";
+  expected = "x";
+  RUN_TEST(input, expected);
+
+  //Rev - rev empty list
+  input = "REV ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Rev - rev one element
+  input = "ADD(x) ~ REV ~ PRINT";
+  expected = "x";
+  RUN_TEST(input, expected);
+
+  //Rev - rev odd # of elements
+  input = "ADD(x) ~ ADD(y) ~ ADD(z) ~ REV ~ PRINT";
+  expected = "zyx";
+  RUN_TEST(input, expected);
+
+  //Rev - rev even # of elements
+  input = "ADD(x) ~ ADD(y) ~ ADD(z) ~ ADD(w) ~ REV ~ PRINT";
+  expected = "wzyx";
+  RUN_TEST(input, expected);
+
+  //Rev - rev twice in a row
+  input = "ADD(x) ~ ADD(y) ~ ADD(z) ~ ADD(w) ~ REV ~ REV ~ PRINT";
+  expected = "wzyx";
+  RUN_TEST(input, expected);
+
+  //Print - malformed PRINT
+  input = "ADD(x) ~ P RINT ~ PPRINT ~ PRINTT ~ PRINT()";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Print - print empty list
+  input = "PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Print - print 1 element
+  input = "ADD(x) ~ PRINT";
+  expected = "x";
+
+  //Print - print twice in a row
+  input = "ADD(x) ~ PRINT ~ PRINT";
+  expected = "x";
+
+  //Sort - malformed SORT
+  input = "ADD(4) ~ ADD(3) ~ S ORT ~ SSORT ~ SORTT ~ SORT() ~ PRINT";
+  expected = "43";
+  RUN_TEST(input, expected);
+
+  //Sort - sort empty list
+  input = "SORT ~ PRINT";
+  expected = "";
+  RUN_TEST(input, expected);
+
+  //Sort - sort 1 element
+  input = "ADD(x) ~ SORT ~ PRINT";
+  expected = "x";
+  RUN_TEST(input, expected);
+
+  //Sort - sort odd # of elements
+  input = "ADD(z) ~ ADD(y) ~ ADD(x) ~ SORT ~ PRINT";
+  expected = "xyz";
+  RUN_TEST(input, expected);
+
+  //Sort - sort even # of elements
+  input = "ADD(1) ~ ADD(4) ~ ADD(3) ~ ADD(2) ~ SORT ~ PRINT";
+  expected = "1234";
+  RUN_TEST(input, expected);
+
+  //Sort - sort already sorted
+  input = "ADD(1) ~ ADD(2) ~ ADD(3) ~ ADD(4) ~ SORT ~ PRINT";
+  expected = "1234";
+  RUN_TEST(input, expected);
+
+  //Sort - sort list of same elements
+  input = "ADD(1) ~ ADD(1) ~ ADD(1) ~ ADD(1) ~ SORT ~ PRINT";
+  expected = "1111";
+  RUN_TEST(input, expected);
+
+  //Sort - sort twice in a row
+  input = "ADD(3) ~ ADD(2) ~ ADD(1) ~ ADD(4) ~ SORT ~ SORT ~ PRINT";
+  expected = "1234";
+  RUN_TEST(input, expected);
 
   //TODO sdx test: malformed SDX: S DX ~ SSDX ~ SDXX ~ SDX()
   //TODO sdx test: sdx empty list
@@ -90,7 +233,7 @@ int main(void)
   //TODO ssx test: ssx 1 element
   //TODO ssx test: ssx 2 elements
   //TODO ssx test: ssx twice in a row
-  
+
   return 0;
 }
 
