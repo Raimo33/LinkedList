@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 21:32:11                                                
+last edited: 2025-04-09 21:45:55                                                
 
 ================================================================================*/
 
@@ -429,6 +429,14 @@ static bool strnmatch(const char *s1, const char *s2, size_t n)
   return result & safe_args;
 }
 
+/*
+definition:
+  returns the length of the string s.
+  assumes the string is null-terminated.
+  assumes the string is not NULL.
+implementation:
+  pointer increment instead of indexing to reduce implicit adds and better pointer proximity. (instead of 1+2, 1+3, 1+4, 1+5, 1+6 it becomes 1+1, 2+1, 3+1, 4+1, 5+1, 6+1)
+*/
 static size_t m_strlen(const char *s)
 {
   size_t len = 0;

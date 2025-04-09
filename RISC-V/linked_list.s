@@ -58,6 +58,38 @@ main:
   jal run
   j exit
 
+//uint8_t tokenize(char *input, const char sep)
+tokenize:
+  li t0, 1 //n_commands
+  lb t1, 0(a0) //c
+  li t2, 0 //is_delim
+
+  //while (c != '\0')
+  tokenize_while:
+    beqz t1, tokenize_end_while
+
+    //is_delim = (c == sep)
+    xori t2, t1, a1
+    seqz t2, t2
+
+    //*input *= !is_delim;
+    xori t3, t2, 1
+    mul t1, t1, t3
+    sb t1, 0(a0)
+
+    //n_commands += is_delim
+    add t0, t0, t2
+    //input++
+    addi a0, a0, 1
+    //c = *input
+    lb t1, 0(a0)
+    j tokenize_while
+  tokenize_end_while:
+
+  //return n_commands
+  mv a0, t0
+  j ra
+
 //void run(t_node **head, t_node **tail, char *input)
 run:
   addi sp, sp, -4
@@ -269,39 +301,18 @@ strnmatch:
 
 //bool is_valid_normal_cmd(const char *command)
 is_valid_normal_cmd:
+  //TODO
 
+//bool is_valid_parameterized_cmd(const char *command)
+is_valid_parameterized_cmd:
+  //TODO
 
-//uint8_t tokenize(char *input, const char sep)
-tokenize:
-  li t0, 1 //n_commands
-  lb t1, 0(a0) //c
-  li t2, 0 //is_delim
+//bool is_valid_args(const char *args)
+is_valid_args:
+  //TODO
 
-  //while (c != '\0')
-  tokenize_while:
-    beqz t1, tokenize_end_while
-
-    //is_delim = (c == sep)
-    xori t2, t1, a1
-    seqz t2, t2
-
-    //*input *= !is_delim;
-    xori t3, t2, 1
-    mul t1, t1, t3
-    sb t1, 0(a0)
-
-    //n_commands += is_delim
-    add t0, t0, t2
-    //input++
-    addi a0, a0, 1
-    //c = *input
-    lb t1, 0(a0)
-    j tokenize_while
-  tokenize_end_while:
-
-  //return n_commands
-  mv a0, t0
-  j ra
+strlen:
+  //TODO
 
 //exit stays as far as possible, unlikely scenarios far from the hot path (instruction cache locality)
 exit:
