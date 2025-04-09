@@ -134,20 +134,24 @@ handle_operation:
   mv a1, ' '
   jal tokenize
 
-  //bool is_valid = is_valid_normal_command(command)
+  //bool is_valid = is_valid_normal_cmd(command)
   mv a0, s2
-  jal is_valid_normal_command
+  jal is_valid_normal_cmd
   mv s4, a0 // is_valid
 
-  //is_valid |= is_valid_parameterized_command(command);
+  //if (is_valid) -> early exit
+  bnez s4, handle_operation_valid
+
+  //is_valid = is_valid_parameterized_cmd(command);
   mv a0, s2
-  jal is_valid_parameterized_command
+  jal is_valid_parameterized_cmd
   or s4, s4, a0 // is_valid
 
   //if (!is_valid) goto end
   beqz s4, handle_operation_end
+handle_operation_valid:
 
-  //load statically compiled arrays
+  //load statically compiled arrays (no stalls since each load is independent)
   la s5, command_strings
   la s6, command_string_lengths
   la s7, list_functions
@@ -211,11 +215,64 @@ handle_operation_end:
   j ra
 
 //bool strnmatch(const char *s1, const char *s2, size_t n)
-//TODO
+strnmatch:
+  //bool safe_args = ((uintptr_t)s1 | (uintptr_t)s2) != 0;
+  mv t0, a0
+  or t0, t0, a1
+  snez t0, t0
+
+  li t1, 1 // bool result = true
+
+  //while (n > 0)
+  strnmatch_while:
+    beqz a2, strnmatch_end_while
+    lb t2, 0(a0) // c1
+    lb t3, 0(a1) // c2
+
+    //increment pointers while LOAD completes (no stall this way)
+    addi a0, a0, 1
+    addi a1, a1, 1
+
+    //bool both_null = (c1 == '\0') & (c2 == '\0')
+    seqz t4, t2
+    seqz t5, t3
+    and t4, t4, t5
+
+    //bool chars_diff = (c1 != c2)
+    xor t5, t2, t3
+    snez t5, t5
+
+    //bool either_null = (c1 == '\0') | (c2 == '\0')
+    seqz t6, t2
+    seqz t7, t3
+    or t6, t6, t7
+
+    //result &= ~(chars_diff | either_null) | both_null
+    or t5, t5, t6
+    not t5, t5
+    or t5, t5, t4
+    and t1, t1, t5
+
+    //bool continue_mask = result != false
+    snez t1, t1
+
+    //n *= continue_mask;
+    and a2, a2, t1
+
+    addi a2, a2, -1
+    j strnmatch_while
+  strnmatch_end_while:
+
+  //return result & safe_args
+  and a1, t0, t1
+  j ra
+
+//bool is_valid_normal_cmd(const char *command)
+is_valid_normal_cmd:
+
 
 //uint8_t tokenize(char *input, const char sep)
 tokenize:
-  //since this function does not call any other function, we can use the a registers directly
   li t0, 1 //n_commands
   lb t1, 0(a0) //c
   li t2, 0 //is_delim

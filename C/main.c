@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 19:10:28                                                
+last edited: 2025-04-09 21:32:11                                                
 
 ================================================================================*/
 
@@ -16,8 +16,8 @@ last edited: 2025-04-09 19:10:28
 static void run(t_node **head, t_node **tail, char *input);
 static uint8_t tokenize(char *input, const char sep);
 static uint8_t handle_operation(t_node **head, t_node **tail, char *command);
-static bool is_valid_normal_command(const char *command);
-static bool is_valid_parameterized_command(const char *command);
+static bool is_valid_normal_cmd(const char *command);
+static bool is_valid_parameterized_cmd(const char *command);
 static bool is_valid_args(const char *args);
 static bool strnmatch(const char *s1, const char *s2, size_t n);
 static size_t m_strlen(const char *s);
@@ -309,7 +309,7 @@ static uint8_t handle_operation(t_node **head, t_node **tail, char *command)
   const uint8_t segment_len = m_strlen(command);
 
   tokenize(command, ' '); //tokenize by spaces
-  const bool is_valid = is_valid_normal_command(command) || is_valid_parameterized_command(command);
+  const bool is_valid = is_valid_normal_cmd(command) || is_valid_parameterized_cmd(command);
 
   if (!is_valid)
     goto end;
@@ -341,7 +341,7 @@ description:
 implementation:\
   use of array of commands and lengths for more readability / mantainability.
 */
-static bool is_valid_normal_command(const char *command)
+static bool is_valid_normal_cmd(const char *command)
 {
   const char *valid_commands[] = { "SORT\0", "REV\0", "PRINT\0"};
   const uint8_t command_lengths[] = { 4, 4, 5, 4, 6 };
@@ -364,7 +364,7 @@ description:
 implementation:
   use of array of commands and lengths for more readability / mantainability.
 */
-static bool is_valid_parameterized_command(const char *command)
+static bool is_valid_parameterized_cmd(const char *command)
 {
   const char *valid_commands[] = { "ADD(", "DEL(" };
   const uint8_t command_lengths[] = { 4, 4 };
@@ -406,27 +406,27 @@ implementation:
 */
 static bool strnmatch(const char *s1, const char *s2, size_t n)
 {
-  bool null_check = ((uintptr_t)s1 | (uintptr_t)s2) == 0;
+  bool safe_args = ((uintptr_t)s1 | (uintptr_t)s2) != 0;
 
   bool result = true;
   while (n--)
   {
     char c1 = *s1;
     char c2 = *s2;
-    s1++;
-    s2++;
-
+    
     bool both_null = (c1 == '\0') & (c2 == '\0');
     bool chars_diff = (c1 != c2);
     bool either_null = (c1 == '\0') | (c2 == '\0');
 
     result &= ~(chars_diff | either_null) | both_null;
-
+    
     bool continue_mask = result != false;
     n *= continue_mask;
+    s1++;
+    s2++;
   }
 
-  return result & !null_check;
+  return result & safe_args;
 }
 
 static size_t m_strlen(const char *s)
