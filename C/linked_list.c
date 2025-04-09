@@ -5,12 +5,15 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-07 18:36:59                                                
+last edited: 2025-04-09 15:00:45                                                
 
 ================================================================================*/
 
 #include <stdlib.h>
 #include <unistd.h>
+
+//TODO remove
+#include <stdio.h>
 
 #include "linked_list.h"
 
@@ -103,7 +106,7 @@ void print(t_node **head, t_node **tail, const char data)
     return;
 
   m_putchar(current->data);
-  print(&current->next, NULL, NULL);
+  print(&current->next, NULL, 0);
 }
 
 static void m_putchar(const char c)
@@ -125,10 +128,8 @@ implementation:
 */
 void sort(t_node **head, t_node **tail, const char data)
 {
-  if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
+  if ((*head == NULL) | (*head == *tail)) //same as (*head == NULL || *head == *tail)
     return;
-
-  exit(0);
 
   // Find the middle using slow-fast pointer technique
   t_node *slow = *head;
@@ -139,17 +140,16 @@ void sort(t_node **head, t_node **tail, const char data)
     fast = fast->next->next;
   }
 
-  printf("FAST: %p\n", fast);
-  printf("SLOW: %p\n", slow);
-
   // Split the list
   t_node *a = *head;
+  t_node *tail_a = slow;
   t_node *b = slow->next;
+  t_node *tail_b = *tail;
   slow->next = NULL;
 
   // Recursively sort both halves
-  sort(&a, &slow, 0);
-  sort(&b, &fast, 0);
+  sort(&a, &tail_a, data);
+  sort(&b, &tail_b, data);
 
   // Merge the sorted halves
   merge(head, tail, a, b);
@@ -168,34 +168,35 @@ implementation:
 */
 static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
 {
-  printf("MERGE CALLED\n");
-
   t_node *current = NULL;
+  t_node *chosen = NULL;
   t_node *nodes[2] = {a, b};
-  bool idx = (a->data > b->data); //i choose the smaller one
+  bool idx = (b->data < a->data); //i choose the smaller one
 
-  current = nodes[idx];
-  *head = current;
+  //set the head
+  chosen = nodes[idx];
+  *head = current = chosen;
+  nodes[idx] = chosen->next;
+  a = nodes[0];
+  b = nodes[1];
 
   while ((a != NULL) & (b != NULL)) //same as (a != NULL && b != NULL) for booleans
   {
-    idx = (b->data < a->data); //i choose the smaller one
+    idx = (b->data < a->data);
 
-    t_node *chosen = nodes[idx];
+    chosen = nodes[idx];
     current->next = chosen;
-    current = chosen;
-
     nodes[idx] = chosen->next;
-
     a = nodes[0];
     b = nodes[1];
   }
 
   //append the list with remaining elements
   current->next = nodes[(a == NULL)]; //i choose the non-null one
+  current = current->next;
 
   //update the tail pointer
-  while (current->next != NULL)
+  while (current->next)
     current = current->next;
   *tail = current;
 }

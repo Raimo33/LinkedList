@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-07 18:36:59                                                
+last edited: 2025-04-09 15:00:45                                                
 
 ================================================================================*/
 
@@ -96,12 +96,12 @@ int main(void)
   //   RUN_TEST(input, expected);
   // }
 
-  //Sort - normal
-  {
-    char input[] = "ADD(2) ~ ADD(1) ~ SORT ~ PRINT";
-    char expected[] = "12";
-    RUN_TEST(input, expected);
-  }
+  // //Sort - normal
+  // {
+  //   char input[] = "ADD(2) ~ ADD(1) ~ SORT ~ PRINT";
+  //   char expected[] = "12";
+  //   RUN_TEST(input, expected);
+  // }
 
   // //Sort - empty
   // {
@@ -117,12 +117,12 @@ int main(void)
   //   RUN_TEST(input, expected);
   // }
 
-  // //Sort - odd # of elements
-  // {
-  //   char input[] = "ADD(3) ~ ADD(1) ~ ADD(2) ~ SORT ~ PRINT";
-  //   char expected[] = "123";
-  //   RUN_TEST(input, expected);
-  // }
+  //Sort - odd # of elements
+  {
+    char input[] = "ADD(3) ~ ADD(1) ~ ADD(2) ~ SORT ~ PRINT";
+    char expected[] = "123";
+    RUN_TEST(input, expected);
+  }
 
   // //Sort - even # of elements
   // {
