@@ -108,16 +108,17 @@ handle_operation:
   sw ra, 0(sp)
 
   //save S registers on the stack in order to make space
-  addi sp, sp, -4
+  addi sp, sp, -40
   sw s0, 0(sp)
-  addi sp, sp, -4
-  sw s1, 0(sp)
-  addi sp, sp, -4
-  sw s2, 0(sp)
-  addi sp, sp, -4
-  sw s3, 0(sp)
-  addi sp, sp, -4
-  sw s4, 0(sp)
+  sw s1, 4(sp)
+  sw s2, 8(sp)
+  sw s3, 12(sp)
+  sw s4, 16(sp)
+  sw s5, 20(sp)
+  sw s6, 24(sp)
+  sw s7, 28(sp)
+  sw s8, 32(sp)
+  sw s9, 36(sp)
 
   mv s0, a0 // head
   mv s1, a1 // tail
@@ -146,25 +147,71 @@ handle_operation:
   //if (!is_valid) goto end
   beqz s4, handle_operation_end
 
-  //TODO declare arrays
+  //load statically compiled arrays
+  la s5, command_strings
+  la s6, command_string_lengths
+  la s7, list_functions
+  lb s8, n_commands
+
+  //for (uint8_t i = 0; i < n_commands; i++)
+  li t0, 0 // i
+  handle_operation_for:
+    beq t0, s8, handle_operation_end
+    //uint8_t command_len = command_string_lengths[i]
+    add s9, s6, t0
+    lb s9, 0(s9) // command_len
+
+    slli t1, t0, 2
+    add t1, s5, t1
+    lw t1, 0(t1) //command_strings[i]
+
+    //strnmatch(command, command_str, command_len)
+    mv a0, s2
+    mv a1, t1
+    mv a2, s9
+    jal strnmatch
+
+    //if (strnmatch(command, command_str, command_len) == false)
+    li t1, 1
+    bne a0, t1, handle_operation_for //continue
+
+    //else -> call the function
+    slli t1, t0, 2
+    add t1, s7, t1
+    lw t1, 0(t1) // functions[i]
+
+    add t2, s2, s9
+    lb t2, 0(t2) // c = command[command_len]
+
+    // function(head, tail, c)
+    mv a0, s0
+    mv a1, s1
+    mv a2, t2
+    jalr ra, t1
+
+    addi t0, t0, 1
+    j handle_operation_end //break
 
 handle_operation_end:
   //restore S registers from the stack
-  addi sp, sp, 4
-  lw s4, 0(sp)
-  addi sp, sp, 4
-  lw s3, 0(sp)
-  addi sp, sp, 4
-  lw s2, 0(sp)
-  addi sp, sp, 4
-  lw s1, 0(sp)
-  addi sp, sp, 4
   lw s0, 0(sp)
+  lw s1, 4(sp)
+  lw s2, 8(sp)
+  lw s3, 12(sp)
+  lw s4, 16(sp)
+  lw s5, 20(sp)
+  lw s6, 24(sp)
+  lw s7, 28(sp)
+  lw s8, 32(sp)
+  lw s9, 36(sp)
+  addi sp, sp, 40
 
   addi sp, sp, 4
   lw ra, 0(sp)
   j ra
 
+//bool strnmatch(const char *s1, const char *s2, size_t n)
+//TODO
 
 //uint8_t tokenize(char *input, const char sep)
 tokenize:

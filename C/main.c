@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 17:35:10                                                
+last edited: 2025-04-09 19:10:28                                                
 
 ================================================================================*/
 
@@ -19,7 +19,7 @@ static uint8_t handle_operation(t_node **head, t_node **tail, char *command);
 static bool is_valid_normal_command(const char *command);
 static bool is_valid_parameterized_command(const char *command);
 static bool is_valid_args(const char *args);
-static bool m_strncmp(const char *s1, const char *s2, size_t n);
+static bool strnmatch(const char *s1, const char *s2, size_t n);
 static size_t m_strlen(const char *s);
 
 #define RUN_TEST(input, expected) \
@@ -321,9 +321,10 @@ static uint8_t handle_operation(t_node **head, t_node **tail, char *command)
 
   for (uint8_t i = 0; i < n_commands; i++)
   {
-    if (m_strncmp(command, command_strings[i], command_string_lenghts[i]))
+    const uint8_t command_len = command_string_lenghts[i];
+    if (strnmatch(command, command_strings[i], command_len))
     {
-      list_functions[i](head, tail, command[command_string_lenghts[i]]);
+      list_functions[i](head, tail, command[command_len]);
       break;
     }
   }
@@ -348,7 +349,7 @@ static bool is_valid_normal_command(const char *command)
 
   for (uint8_t i = 0; i < n_commands; i++)
   {
-    if (m_strncmp(command, valid_commands[i], command_lengths[i]))
+    if (strnmatch(command, valid_commands[i], command_lengths[i]))
       return true;
   }
 
@@ -371,7 +372,7 @@ static bool is_valid_parameterized_command(const char *command)
 
   for (uint8_t i = 0; i < n_commands; i++)
   {
-    if (m_strncmp(command, valid_commands[i], command_lengths[i]))
+    if (strnmatch(command, valid_commands[i], command_lengths[i]))
       return is_valid_args(&command[command_lengths[i]]);
   }
 
@@ -395,7 +396,7 @@ static bool is_valid_args(const char *args)
 /*
 definition:
   compares the first n characters of two strings.
-  returns true if they are equal, false otherwise.
+  returns true if the strings match, false otherwise.
   returns false if either s1 or s2 are NULL.
 
 implementation:
@@ -403,7 +404,7 @@ implementation:
   use of bitwise & instead of logical && to avoid branches.
   generalized the function by handling edge cases even though it wont ever be called with such
 */
-static bool m_strncmp(const char *s1, const char *s2, size_t n)
+static bool strnmatch(const char *s1, const char *s2, size_t n)
 {
   bool null_check = ((uintptr_t)s1 | (uintptr_t)s2) == 0;
 
