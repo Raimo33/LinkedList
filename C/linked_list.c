@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 15:00:45                                                
+last edited: 2025-04-09 15:34:25                                                
 
 ================================================================================*/
 
@@ -128,7 +128,7 @@ implementation:
 */
 void sort(t_node **head, t_node **tail, const char data)
 {
-  if ((*head == NULL) | (*head == *tail)) //same as (*head == NULL || *head == *tail)
+  if (*head == *tail) //base case: 1 element list
     return;
 
   // Find the middle using slow-fast pointer technique
@@ -141,18 +141,18 @@ void sort(t_node **head, t_node **tail, const char data)
   }
 
   // Split the list
-  t_node *a = *head;
+  t_node *head_a = *head;
   t_node *tail_a = slow;
-  t_node *b = slow->next;
+  t_node *head_b = slow->next;
   t_node *tail_b = *tail;
   slow->next = NULL;
 
   // Recursively sort both halves
-  sort(&a, &tail_a, data);
-  sort(&b, &tail_b, data);
+  sort(&head_a, &tail_a, data);
+  sort(&head_b, &tail_b, data);
 
   // Merge the sorted halves
-  merge(head, tail, a, b);
+  merge(head, tail, head_a, head_b);
 }
 
 /*
@@ -173,6 +173,8 @@ static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
   t_node *nodes[2] = {a, b};
   bool idx = (b->data < a->data); //i choose the smaller one
 
+  printf("merging %c and %c\n", a->data, b->data);
+
   //set the head
   chosen = nodes[idx];
   *head = current = chosen;
@@ -184,16 +186,20 @@ static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
   {
     idx = (b->data < a->data);
 
+    printf("current: %c, chosen: %c\n", current->data, nodes[idx]->data);
+
     chosen = nodes[idx];
     current->next = chosen;
+    current = chosen;
     nodes[idx] = chosen->next;
     a = nodes[0];
     b = nodes[1];
   }
 
   //append the list with remaining elements
-  current->next = nodes[(a == NULL)]; //i choose the non-null one
-  current = current->next;
+  chosen = nodes[(b != NULL)]; //i choose the non-null one
+  current->next = chosen;
+  current = chosen;
 
   //update the tail pointer
   while (current->next)

@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 15:00:45                                                
+last edited: 2025-04-09 15:34:25                                                
 
 ================================================================================*/
 
@@ -61,13 +61,6 @@ int main(void)
   //   RUN_TEST(input, expected);
   // }
 
-  // //Add - add '\0'
-  // {
-  //   char input[] = "ADD('\0') ~ PRINT";
-  //   char expected[] = "";
-  //   RUN_TEST(input, expected);
-  // }
-
   // //Add - add two chars in same command
   // {
   //   char input[] = "ADD(ab) ~ PRINT";
@@ -117,12 +110,12 @@ int main(void)
   //   RUN_TEST(input, expected);
   // }
 
-  //Sort - odd # of elements
-  {
-    char input[] = "ADD(3) ~ ADD(1) ~ ADD(2) ~ SORT ~ PRINT";
-    char expected[] = "123";
-    RUN_TEST(input, expected);
-  }
+  // //Sort - odd # of elements
+  // {
+  //   char input[] = "ADD(3) ~ ADD(1) ~ ADD(2) ~ SORT ~ PRINT";
+  //   char expected[] = "123";
+  //   RUN_TEST(input, expected);
+  // }
 
   // //Sort - even # of elements
   // {
@@ -141,13 +134,6 @@ int main(void)
   // //Delete - malformed DELETE
   // {
   //   char input[] = "ADD(x) DE L(x) ~ DELL(x) ~ DDEL(x) ~ DEL() ~ DEL ~ PRINT";
-  //   char expected[] = "x";
-  //   RUN_TEST(input, expected);
-  // }
-
-  // //Delete - delete '\0'
-  // {
-  //   char input[] = "ADD(x) ~ DEL('\0') ~ PRINT";
   //   char expected[] = "x";
   //   RUN_TEST(input, expected);
   // }
@@ -243,10 +229,10 @@ int main(void)
   //   RUN_TEST(input, expected);
   // }
 
-  // //Print - print twice in a row
+  //Print - print twice in a row
   // {
   //   char input[] = "ADD(x) ~ PRINT ~ PRINT";
-  //   char expected[] = "x";
+  //   char expected[] = "xx";
   //   RUN_TEST(input, expected);
   // }
 
