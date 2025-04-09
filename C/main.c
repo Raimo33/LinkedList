@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 15:34:25                                                
+last edited: 2025-04-09 17:35:10                                                
 
 ================================================================================*/
 
@@ -314,16 +314,16 @@ static uint8_t handle_operation(t_node **head, t_node **tail, char *command)
   if (!is_valid)
     goto end;
 
-  const char *commands[] = { "ADD(", "DEL(", "SORT\0", "REV\0", "PRINT\0" };
-  const void (*functions[])(t_node **, t_node **, const char) = { add, del, sort, rev, print };
-  const uint8_t command_lengths[] = { 4, 4, 5, 5, 6 };
-  const uint8_t n_commands = sizeof(commands) / sizeof(commands[0]);
+  const char *command_strings[] = { "ADD(", "DEL(", "SORT\0", "REV\0", "PRINT\0" };
+  const void (*list_functions[])(t_node **, t_node **, const char) = { add, del, sort, rev, print };
+  const uint8_t command_string_lenghts[] = { 4, 4, 5, 5, 6 };
+  const uint8_t n_commands = sizeof(command_strings) / sizeof(command_strings[0]);
 
   for (uint8_t i = 0; i < n_commands; i++)
   {
-    if (m_strncmp(command, commands[i], command_lengths[i]))
+    if (m_strncmp(command, command_strings[i], command_string_lenghts[i]))
     {
-      functions[i](head, tail, command[command_lengths[i]]);
+      list_functions[i](head, tail, command[command_string_lenghts[i]]);
       break;
     }
   }
