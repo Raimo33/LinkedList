@@ -489,6 +489,14 @@ strlen:
   mv a0, t0
   j ra
 
+.data
+
+mempool: .space 150 #max of 30 nodes of 5 bytes each
+free_list_head: .word 0x0
+
+#void add(t_node **head, t_node **tail, const char data)
+
+
 #exit stays as far as possible, unlikely scenarios far from the hot path (instruction cache locality)
 exit:
   li a7, 10
