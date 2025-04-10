@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-09 15:34:25                                                
+last edited: 2025-04-10 15:51:09                                                
 
 ================================================================================*/
 
@@ -173,8 +173,6 @@ static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
   t_node *nodes[2] = {a, b};
   bool idx = (b->data < a->data); //i choose the smaller one
 
-  printf("merging %c and %c\n", a->data, b->data);
-
   //set the head
   chosen = nodes[idx];
   *head = current = chosen;
@@ -185,8 +183,6 @@ static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
   while ((a != NULL) & (b != NULL)) //same as (a != NULL && b != NULL) for booleans
   {
     idx = (b->data < a->data);
-
-    printf("current: %c, chosen: %c\n", current->data, nodes[idx]->data);
 
     chosen = nodes[idx];
     current->next = chosen;
