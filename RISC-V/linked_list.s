@@ -309,10 +309,29 @@ is_valid_parameterized_cmd:
 
 //bool is_valid_args(const char *args)
 is_valid_args:
+  li t0, 0(a0) // args[0]
+  li t1, 1(a0) // args[1]
+
+  //return (c != '\0') & (c != ')') & (args[1] == ')');
   //TODO
 
+//size_t m_strlen(const char *s)
 strlen:
-  //TODO
+  li t0, 0 //size_t len = 0
+
+  //while (*s != '\0')
+  strlen_while:
+    lb t1, 0(a0) // c
+    beqz t1, strlen_end_while
+
+    addi t0, t0, 1
+    addi a0, a0, 1
+    j strlen_while
+  strlen_end_while:
+
+  //return len
+  mv a0, t0
+  j ra
 
 //exit stays as far as possible, unlikely scenarios far from the hot path (instruction cache locality)
 exit:
