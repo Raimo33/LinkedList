@@ -411,8 +411,8 @@ handle_operation_end:
   lw s9, 36(sp)
   addi sp, sp, 40
 
-  addi sp, sp, 4
   lw ra, 0(sp)
+  addi sp, sp, 4
   ret
 
 #bool strnmatch(const char *s1, const char *s2, size_t n)
@@ -581,7 +581,7 @@ is_valid_parameterized_cmd:
   lw s3, 12(sp)
   lw s4, 16(sp)
   lw s5, 20(sp)
-  addi sp, sp, 24
+  addi sp, sp, 20
 
   lw ra, 0(sp)
   addi sp, sp, 4
