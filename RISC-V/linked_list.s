@@ -486,12 +486,12 @@ is_valid_normal_cmd:
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_normal
   la s2, command_lengths_normal
-  lb s3, n_commands_normal
+  lb s4, n_commands_normal
 
   li s3, 0 # i
   #for (uint8_t i = 0; i < n_commands; i++)
   is_valid_normal_cmd_for:
-    beq s3, s3, is_valid_normal_cmd_end_for
+    beq s4, s3, is_valid_normal_cmd_end_for
 
     slli t0, s3, 2
     add t0, s1, t0
