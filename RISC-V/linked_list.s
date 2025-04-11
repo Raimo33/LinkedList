@@ -1,19 +1,3 @@
-.data
-
-head: .word 0x10000000
-tail: .word 0x10000000
-list_input: .string "ADD(1)"
-
-.rodata
-
-command_add:    .string "ADD("
-command_del:    .string "DEL("
-command_rev:    .string "REV\0"
-command_sort:   .string "SORT\0"
-command_print:  .string "PRINT\0"
-
-.text
-
 # general rules of thumb:
 #   - a0-a7 are used for function arguments and return values (a0 is the return value, a7 is the syscall argument)
 #   - s0-s11 are used for callee registers
@@ -25,6 +9,38 @@ command_print:  .string "PRINT\0"
 # if a function needs to use a s0-s11 register, it must save the value to the stack and restore it as it was before returning
 # if a function calls a function, it must save the ra register to the stack and restore it as it was before returning
 
+.data
+
+head_ptr: .word 0x10000000
+tail_ptr: .word 0x10000000
+list_input: .string "ADD(1)"
+
+heap_ptr: .word 0x00FFFFFF
+
+command_add:    .string "ADD("
+command_del:    .string "DEL("
+command_rev:    .string "REV\0"
+command_sort:   .string "SORT\0"
+command_print:  .string "PRINT\0"
+
+#arrary of command strings
+command_strings:
+  .word command_add
+  .word command_del
+  .word command_rev
+  .word command_sort
+  .word command_print
+
+#array of command string lengths
+command_lengths:
+  .byte 4
+  .byte 4
+  .byte 5
+  .byte 5
+  .byte 6
+  
+.text
+
 #TODO add tests
 main:
   la a0, head_ptr
@@ -32,6 +48,183 @@ main:
   la a2, list_input
   jal run
   j exit
+
+#void *malloc(size_t size)
+malloc:
+  #TODO: look for a region of size bytes in the heap (free-list)
+
+#void add(t_node **head, t_node **tail, const char data)
+list_add:
+  addi sp, sp, -4
+  sw ra, 0(sp)
+
+  #save S registers on the stack in order to make space
+  addi sp, sp, -12
+  sw s0, 0(sp)
+  sw s1, 4(sp)
+  sw s2, 8(sp) 
+
+  mv s0, a0 # head
+  mv s1, a1 # tail
+  mv s2, a2 # data
+
+  #t_node *new_node = malloc(sizeof(t_node));
+  li a0, 5
+  j malloc
+  mv t0, a0 # new_node
+
+  #if (new_node == NULL) -> exit
+  beqz t0, exit
+
+  #new_node->data = data;
+  sb s2, 0(t0)
+  #new_node->next = NULL;
+  sw zero, 1(t0) #TODO potential unaligned store
+
+  #if (*head == NULL)
+  lw t1, 0(s0)
+  beqz t1, list_add_update_head
+
+  #else
+  lw t1, 0(s1)
+  sw t0, 1(t1) # (*tail)->next = new_node
+  sw t0, 0(s1) # *tail = new_node
+  j list_add_end
+
+list_add_update_head:
+  sw t0, 0(s0) # *head = new_node
+  sw t0, 0(s1) # *tail = new_node
+
+list_add_end:
+
+  #restore S registers from the stack
+  lw s0, 0(sp)
+  lw s1, 4(sp)
+  lw s2, 8(sp)
+  addi sp, sp, 12
+
+  lw ra, 0(sp)
+  addi sp, sp, 4
+  ret
+
+#void free(t_node *node)
+free:
+  #TODO: free the node and add it to the free-list
+
+#void del(t_node **head, t_node **tail, const char data)
+list_del:
+  lw t0, 0(a0) # t_node *current = *head;
+  li t1, 0 # t_node *prev = NULL;
+  li t2, 0 # t_node *last = NULL;
+
+  #while (current != NULL)
+  list_del_while:
+    beqz t0, list_del_while_end
+
+    lb t3, 0(t0)
+    xor t3, t3, a2
+    seqz t3, t3 # current->data == data
+
+    #if (current->data == data)
+    bnez t3, list_del_continue
+      mv t3, t0 # t_node *to_delete = current
+      lw t0, 1(t0) # current = current->next
+
+      #if (prev == NULL)
+      bnez t1, list_del_update_prev
+        sw t0, 0(a0) # *head = current
+        j list_del_while
+
+      #else
+      list_del_update_prev:
+        sw t0, 1(t1) # prev->next = current
+
+      j list_del_while
+
+    #else
+    list_del_continue:
+      mv t1, t0 # prev = current
+      mv t2, t0 # last = current
+      lw t0, 1(t0) # current = current->next
+
+    j list_del_while
+  list_del_while_end:
+
+  lw t2, 0(a1) #tail = last
+  ret
+
+#void print(t_node **head, t_node **tail, const char data)
+list_print:
+  addi sp, sp, -4
+  sw ra, 0(sp)
+
+  lw t0, 0(a0) # t_node *current = *head;
+
+  #if (current == NULL)
+  beqz t0, list_print_end
+
+  lb a0, 0(t0)
+  li a7, 11 # syscall number for putchar
+  ecall
+
+  #print(&current->next, NULL, 0)
+  addi a0, t0, 1
+  li a1, 0
+  li a2, 0
+  j list_print
+
+list_print_end:
+  lw ra, 0(sp)
+  addi sp, sp, 4
+
+  ret
+
+#TODO
+#void sort(t_node **head, t_node **tail, const char data)
+list_sort:
+
+#TODO
+#void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
+
+#TODO
+#void rev(t_node **head, t_node **tail, const char data)
+list_rev:
+
+.data
+
+#array of function pointers
+list_functions:
+  .word list_add
+  .word list_del
+  .word list_rev
+  .word list_sort
+  .word list_print
+
+n_commands: .byte 5
+
+command_strings_normal:
+  .string "REV\0"
+  .string "SORT\0"
+  .string "PRINT\0"
+
+command_lengths_normal:
+  .byte 4
+  .byte 5
+  .byte 6
+
+n_commands_normal: .byte 3
+
+command_strings_parameterized:
+  .string "ADD("
+  .string "DEL("
+
+command_lengths_parameterized:
+  .byte 4
+  .byte 4
+
+n_commands_parameterized: .byte 2
+
+.text
 
 #uint8_t tokenize(char *input, const char sep)
 tokenize:
@@ -60,7 +253,7 @@ tokenize:
 
   #return n_commands
   mv a0, t0
-  j ra
+  ret
 
 #void run(t_node **head, t_node **tail, char *input)
 run:
@@ -73,7 +266,7 @@ run:
 
   #tokenize(input, '~')
   mv a0, s2
-  mv a1, '~'
+  li a1, 126 #'~' in ASCII
   jal tokenize
   mv s3, a0 # n_commands
 
@@ -83,7 +276,7 @@ run:
 
     #input += (input[0] == ' ')
     lb t0, 0(s2)
-    xori t0, t0, ' '
+    xori t0, t0, 32 #SPACE in ASCII
     seqz t0, t0
     add s2, s2, t0
 
@@ -105,36 +298,6 @@ run:
   lw ra, 0(sp)
   addi sp, sp, 4
   jr ra
-
-.rodata
-
-#arrary of command strings
-command_strings:
-  .word command_add
-  .word command_del
-  .word command_rev
-  .word command_sort
-  .word command_print
-
-#array of command string lengths
-command_lengths:
-  .byte 4
-  .byte 4
-  .byte 5
-  .byte 5
-  .byte 6
-
-#array of function pointers
-list_functions:
-  .word list_add
-  .word list_del
-  .word list_rev
-  .word list_sort
-  .word list_print
-
-n_commands: .byte 5
-
-.text
 
 #uint8_t handle_operation(t_node **head, t_node **tail, char *command)
 handle_operation:
@@ -165,7 +328,7 @@ handle_operation:
 
   #tokenize(command, ' ')
   mv a0, s2
-  mv a1, ' '
+  li a1, 32 #SPACE in ASCII
   jal tokenize
 
   #bool is_valid = is_valid_normal_cmd(command)
@@ -227,7 +390,7 @@ handle_operation_call_function:
   mv a0, s0
   mv a1, s1
   mv a2, t2
-  jalr ra, t1
+  jalr ra, t1, 0
 
   addi t0, t0, 1
 
@@ -247,7 +410,7 @@ handle_operation_end:
 
   addi sp, sp, 4
   lw ra, 0(sp)
-  j ra
+  ret
 
 #bool strnmatch(const char *s1, const char *s2, size_t n)
 strnmatch:
@@ -279,8 +442,8 @@ strnmatch:
 
     #bool either_null = (c1 == '\0') | (c2 == '\0')
     seqz t6, t2
-    seqz t7, t3
-    or t6, t6, t7
+    seqz t3, t3 #c2 is overwritten to reuse registers
+    or t6, t6, t3
 
     #result &= ~(chars_diff | either_null) | both_null
     or t5, t5, t6
@@ -291,32 +454,16 @@ strnmatch:
     #bool continue_mask = result != false
     snez t1, t1
 
+    addi a2, a2, -1
     #n *= continue_mask;
     and a2, a2, t1
 
-    addi a2, a2, -1
     j strnmatch_while
   strnmatch_end_while:
 
   #return result & safe_args
   and a1, t0, t1
-  j ra
-
-.rodata
-
-command_strings_normal:
-  .string "REV\0"
-  .string "SORT\0"
-  .string "PRINT\0"
-
-command_lengths_normal:
-  .byte 4
-  .byte 5
-  .byte 6
-
-n_commands_normal: .byte 3
-
-.text
+  ret
 
 #bool is_valid_normal_cmd(const char *command)
 is_valid_normal_cmd:
@@ -341,7 +488,7 @@ is_valid_normal_cmd:
   li s3, 0 # i
   #for (uint8_t i = 0; i < n_commands; i++)
   is_valid_normal_cmd_for:
-    beq s3, s3, is_valid_normal_cmd_end
+    beq s3, s3, is_valid_normal_cmd_end_for
 
     slli t0, s3, 2
     add t0, s1, t0
@@ -371,21 +518,7 @@ is_valid_normal_cmd:
   lw ra, 0(sp)
   addi sp, sp, 4
 
-  j ra
-
-.rodata
-
-command_strings_parameterized:
-  .string "ADD("
-  .string "DEL("
-
-command_lengths_parameterized:
-  .byte 4
-  .byte 4
-
-n_commands_parameterized: .byte 2
-
-.text
+  ret
 
 #bool is_valid_parameterized_cmd(const char *command)
 is_valid_parameterized_cmd:
@@ -427,7 +560,7 @@ is_valid_parameterized_cmd:
     jal strnmatch
 
     #if (strnmatch(command, command_str, command_len) == false);
-    bezq a0, is_valid_parameterized_cmd_for #continue 
+    beqz a0, is_valid_parameterized_cmd_for #continue 
 
     #return is_valid_args(&command[command_len]);
     add a0, s0, s5
@@ -446,15 +579,15 @@ is_valid_parameterized_cmd:
   lw ra, 0(sp)
   addi sp, sp, 4
 
-  j ra
+  ret
 
 #bool is_valid_args(const char *args)
 is_valid_args:
   lb t0, 0(a0) # args[0]
   lb t1, 1(a0) # args[1]
-  li t2, ')'
+  li t2, 41 #closed parenthesis in ASCII
 
-  #return (c != '\0') & (c != ')') & (args[1] == ')');
+  #return (c != '\0') & (c != 41) & (args[1] == 41);
   snez t3, t0
 
   sub t5, t0, t2
@@ -467,7 +600,7 @@ is_valid_args:
   and t3, t3, t6
 
   mv a0, t3
-  j ra
+  ret
 
 #size_t m_strlen(const char *s)
 strlen:
@@ -485,169 +618,7 @@ strlen:
 
   #return len
   mv a0, t0
-  j ra
-
-.data
-
-mempool: .space 150 #max of 30 nodes of 5 bytes each
-heap_ptr: .word mempool
-
-.text
-
-#void *malloc(size_t size)
-malloc:
-  la t0, heap_ptr
-  lw t1, 0(t0)
-
-  add t2, t1, a0 # new_ptr = heap_ptr + size
-
-  #if (new_ptr > mempool + 150)
-  la t3, mempool
-  add t3, t3, 150
-  bge t2, t3, malloc_fail
-
-  #update heap_ptr
-  sw t2, 0(t0)
-
-  #return original pointer
-  mv a0, t1
-  j ra
-malloc_fail:
-  #return NULL
-  li a0, 0
-  j ra
-
-#void add(t_node **head, t_node **tail, const char data)
-list_add:
-  addi sp, sp, -4
-  sw ra, 0(sp)
-
-  #save S registers on the stack in order to make space
-  addi sp, sp, -12
-  sw s0, 0(sp)
-  sw s1, 4(sp)
-  sw s2, 8(sp) 
-
-  mv s0, a0 # head
-  mv s1, a1 # tail
-  mv s2, a2 # data
-
-  #t_node *new_node = malloc(sizeof(t_node));
-  li a0, 5
-  j malloc
-  mv t0, a0 # new_node
-
-  #if (new_node == NULL) -> exit
-  beqz t0, exit
-
-  #new_node->data = data;
-  sb s2, 0(t0)
-  #new_node->next = NULL;
-  sw zero, 1(t0) #TODO potential unaligned store
-
-  #if (*head == NULL)
-  lw t1, 0(s0)
-  beqz t1, list_add_update_head
-
-  #else
-  lw t1, 0(s1)
-  sw t0, 1(t1) # (*tail)->next = new_node
-  sw t0, 0(s1) # *tail = new_node
-  j list_add_end
-
-list_add_update_head:
-  sw t0, 0(s0) # *head = new_node
-  sw t0, 0(s1) # *tail = new_node
-
-list_add_end:
-
-  #restore S registers from the stack
-  lw s0, 0(sp)
-  lw s1, 4(sp)
-  lw s2, 8(sp)
-  addi sp, sp, 12
-
-  lw ra, 0(sp)
-  addi sp, sp, 4
-  j ra
-
-#void del(t_node **head, t_node **tail, const char data)
-list_del:
-  lw t0, 0(a0) # t_node *current = *head;
-  li t1, 0 # t_node *prev = NULL;
-  li t2, 0 # t_node *last = NULL;
-
-  #while (current != NULL)
-  list_del_while:
-    beqz t0, list_del_while_end
-
-    lb t3, 0(t0)
-    xor t3, t3, a2
-    seqz t3, t3 # current->data == data
-
-    #if (current->data == data)
-    bnez t3, list_del_continue
-      mv t3, t0 # t_node *to_delete = current
-      lw t0, 1(t0) # current = current->next
-
-      #if (prev == NULL)
-      bnez t1, list_del_update_prev
-        sw t0, 0(a0) # *head = current
-        j list_del_while
-
-      #else
-      list_del_update_prev:
-        sw t0, 1(t1) # prev->next = current
-
-      j list_del_while
-
-    #else
-    list_del_continue:
-      mv t1, t0 # prev = current
-      mv t2, t0 # last = current
-      lw t0, 1(t0) # current = current->next
-
-    j list_del_while
-  list_del_while_end:
-
-  lw t2, 0(a1) #tail = last
-  j ra
-
-#void print(t_node **head, t_node **tail, const char data)
-list_print:
-  addi sp, sp, -4
-  sw ra, 0(sp)
-
-  lw t0, 0(a0) # t_node *current = *head;
-
-  #if (current == NULL)
-  beqz t0, list_print_end
-
-  lb a0, 0(t0)
-  li a7, 11 # syscall number for putchar
-  ecall
-
-  #print(&current->next, NULL, 0)
-  addi a0, t0, 1
-  li a1, 0
-  li a2, 0
-  j list_print
-
-list_print_end:
-  lw ra, 0(sp)
-  addi sp, sp, 4
-
-  j ra
-
-#TODO
-#void sort(t_node **head, t_node **tail, const char data)
-
-#TODO
-#void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
-
-#TODO
-#void rev(t_node **head, t_node **tail, const char data)
-list_rev:
+  ret
 
 #exit stays as far as possible, unlikely scenarios far from the hot path (instruction cache locality)
 exit:
