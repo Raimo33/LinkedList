@@ -506,10 +506,10 @@ is_valid_normal_cmd:
     mv a2, t1
     jal strnmatch
 
+    addi s3, s3, 1 # i++
+
     #if (strnmatch(command, command_str, command_len) == false) -> continue
     beqz a0, is_valid_normal_cmd_for
-
-    addi s3, s3, 1
   is_valid_normal_cmd_end_for:
 
   #restore S registers from the stack
@@ -564,14 +564,14 @@ is_valid_parameterized_cmd:
     mv a2, s5
     jal strnmatch
 
+    addi s4, s4, 1 # i++
+
     #if (strnmatch(command, command_str, command_len) == false);
     beqz a0, is_valid_parameterized_cmd_for #continue 
 
     #return is_valid_args(&command[command_len]);
     add a0, s0, s5
     jal is_valid_args
-
-    addi s4, s4, 1
   is_valid_parameterized_cmd_end_for: #at this point a0 will already contain the boolean result
 
   #restore S registers from the stack
