@@ -531,7 +531,7 @@ is_valid_parameterized_cmd:
   sw ra, 0(sp)
 
   #save S registers on the stack in order to make space
-  addi sp, sp, -20
+  addi sp, sp, -24
   sw s0, 0(sp)
   sw s1, 4(sp)
   sw s2, 8(sp)
@@ -581,7 +581,7 @@ is_valid_parameterized_cmd:
   lw s3, 12(sp)
   lw s4, 16(sp)
   lw s5, 20(sp)
-  addi sp, sp, 20
+  addi sp, sp, 24
 
   lw ra, 0(sp)
   addi sp, sp, 4
