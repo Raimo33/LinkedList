@@ -1,7 +1,7 @@
 .data
 
-head: .word 0x0
-tail: .word 0x0
+head: .word 0x10000000
+tail: .word 0x10000000
 list_input: .string "ADD(1)"
 
 .rodata
@@ -52,12 +52,9 @@ tokenize:
     mul t1, t1, t3
     sb t1, 0(a0)
 
-    #n_commands += is_delim
-    add t0, t0, t2
-    #input++
-    addi a0, a0, 1
-    #c = *input
-    lb t1, 0(a0)
+    add t0, t0, t2 #n_commands += is_delim
+    addi a0, a0, 1 #input++
+    lb t1, 0(a0) #c = *input
     j tokenize_while
   tokenize_end_while:
 
@@ -198,7 +195,7 @@ handle_operation_valid:
   li t0, 0 # i
   handle_operation_for:
     beq t0, s8, handle_operation_end
-    #uint8_t command_len = command_lengths[i]
+
     add s9, s6, t0
     lb s9, 0(s9) # command_len
 
@@ -212,26 +209,27 @@ handle_operation_valid:
     mv a2, s9
     jal strnmatch
 
-    #if (strnmatch(command, command_str, command_len) == false)
-    li t1, 1
-    bne a0, t1, handle_operation_for #continue
+    #if (strnmatch(command, command_str, command_len) == true)
+      li t1, 1
+      beq a0, t1, handle_operation_call_function
+    #else
+      j handle_operation_for #continue
 
-    #else -> call the function
-    slli t1, t0, 2
-    add t1, s7, t1
-    lw t1, 0(t1) # functions[i]
+handle_operation_call_function:
+  slli t1, t0, 2
+  add t1, s7, t1
+  lw t1, 0(t1) # functions[i]
 
-    add t2, s2, s9
-    lb t2, 0(t2) # c = command[command_len]
+  add t2, s2, s9
+  lb t2, 0(t2) # c = command[command_len]
 
-    # function(head, tail, c)
-    mv a0, s0
-    mv a1, s1
-    mv a2, t2
-    jalr ra, t1
+  # function(head, tail, c)
+  mv a0, s0
+  mv a1, s1
+  mv a2, t2
+  jalr ra, t1
 
-    addi t0, t0, 1
-    j handle_operation_end #break
+  addi t0, t0, 1
 
 handle_operation_end:
   #restore S registers from the stack
@@ -519,9 +517,6 @@ malloc_fail:
   li a0, 0
   j ra
 
-free:
-  //TODO
-
 #void add(t_node **head, t_node **tail, const char data)
 list_add:
   addi sp, sp, -4
@@ -591,19 +586,68 @@ list_del:
     seqz t3, t3 # current->data == data
 
     #if (current->data == data)
-    beqz t3, list_del_remove_node
+    bnez t3, list_del_continue
+      mv t3, t0 # t_node *to_delete = current
+      lw t0, 1(t0) # current = current->next
+
+      #if (prev == NULL)
+      bnez t1, list_del_update_prev
+        sw t0, 0(a0) # *head = current
+        j list_del_while
+
+      #else
+      list_del_update_prev:
+        sw t0, 1(t1) # prev->next = current
+
+      j list_del_while
 
     #else
-    mv t1, t0 # prev = current
-    mv t2, t0 # last = current
-    lw t0, 1(t0) # current = current->next
-    j list_del_while
+    list_del_continue:
+      mv t1, t0 # prev = current
+      mv t2, t0 # last = current
+      lw t0, 1(t0) # current = current->next
 
-  list_del_remove_node:
-    //TODO
-  
+    j list_del_while
   list_del_while_end:
+
+  lw t2, 0(a1) #tail = last
   j ra
+
+#void print(t_node **head, t_node **tail, const char data)
+list_print:
+  addi sp, sp, -4
+  sw ra, 0(sp)
+
+  lw t0, 0(a0) # t_node *current = *head;
+
+  #if (current == NULL)
+  beqz t0, list_print_end
+
+  lb a0, 0(t0)
+  li a7, 11 # syscall number for putchar
+  ecall
+
+  #print(&current->next, NULL, 0)
+  addi a0, t0, 1
+  li a1, 0
+  li a2, 0
+  j list_print
+
+list_print_end:
+  lw ra, 0(sp)
+  addi sp, sp, 4
+
+  j ra
+
+#TODO
+#void sort(t_node **head, t_node **tail, const char data)
+
+#TODO
+#void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
+
+#TODO
+#void rev(t_node **head, t_node **tail, const char data)
+list_rev:
 
 #exit stays as far as possible, unlikely scenarios far from the hot path (instruction cache locality)
 exit:
