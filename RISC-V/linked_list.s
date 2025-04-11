@@ -465,7 +465,7 @@ strnmatch:
   strnmatch_end_while:
 
   #return result & safe_args
-  and a1, t0, t1
+  and a0, t0, t1
   ret
 
 #bool is_valid_normal_cmd(const char *command)
