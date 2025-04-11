@@ -44,7 +44,7 @@ tokenize:
     beqz t1, tokenize_end_while
 
     #is_delim = (c == sep)
-    xori t2, t1, a1
+    xor t2, t1, a1
     seqz t2, t2
 
     #*input *= !is_delim;
@@ -129,11 +129,11 @@ command_lengths:
 
 #array of function pointers
 list_functions:
-  .word add
-  .word del
-  .word rev
-  .word sort
-  .word print
+  .word list_add
+  .word list_del
+  .word list_rev
+  .word list_sort
+  .word list_print
 
 n_commands: .byte 5
 
@@ -492,10 +492,118 @@ strlen:
 .data
 
 mempool: .space 150 #max of 30 nodes of 5 bytes each
-free_list_head: .word 0x0
+heap_ptr: .word mempool
+
+.text
+
+#void *malloc(size_t size)
+malloc:
+  la t0, heap_ptr
+  lw t1, 0(t0)
+
+  add t2, t1, a0 # new_ptr = heap_ptr + size
+
+  #if (new_ptr > mempool + 150)
+  la t3, mempool
+  add t3, t3, 150
+  bge t2, t3, malloc_fail
+
+  #update heap_ptr
+  sw t2, 0(t0)
+
+  #return original pointer
+  mv a0, t1
+  j ra
+malloc_fail:
+  #return NULL
+  li a0, 0
+  j ra
+
+free:
+  //TODO
 
 #void add(t_node **head, t_node **tail, const char data)
+list_add:
+  addi sp, sp, -4
+  sw ra, 0(sp)
 
+  #save S registers on the stack in order to make space
+  addi sp, sp, -12
+  sw s0, 0(sp)
+  sw s1, 4(sp)
+  sw s2, 8(sp) 
+
+  mv s0, a0 # head
+  mv s1, a1 # tail
+  mv s2, a2 # data
+
+  #t_node *new_node = malloc(sizeof(t_node));
+  li a0, 5
+  j malloc
+  mv t0, a0 # new_node
+
+  #if (new_node == NULL) -> exit
+  beqz t0, exit
+
+  #new_node->data = data;
+  sb s2, 0(t0)
+  #new_node->next = NULL;
+  sw zero, 1(t0) #TODO potential unaligned store
+
+  #if (*head == NULL)
+  lw t1, 0(s0)
+  beqz t1, list_add_update_head
+
+  #else
+  lw t1, 0(s1)
+  sw t0, 1(t1) # (*tail)->next = new_node
+  sw t0, 0(s1) # *tail = new_node
+  j list_add_end
+
+list_add_update_head:
+  sw t0, 0(s0) # *head = new_node
+  sw t0, 0(s1) # *tail = new_node
+
+list_add_end:
+
+  #restore S registers from the stack
+  lw s0, 0(sp)
+  lw s1, 4(sp)
+  lw s2, 8(sp)
+  addi sp, sp, 12
+
+  lw ra, 0(sp)
+  addi sp, sp, 4
+  j ra
+
+#void del(t_node **head, t_node **tail, const char data)
+list_del:
+  lw t0, 0(a0) # t_node *current = *head;
+  li t1, 0 # t_node *prev = NULL;
+  li t2, 0 # t_node *last = NULL;
+
+  #while (current != NULL)
+  list_del_while:
+    beqz t0, list_del_while_end
+
+    lb t3, 0(t0)
+    xor t3, t3, a2
+    seqz t3, t3 # current->data == data
+
+    #if (current->data == data)
+    beqz t3, list_del_remove_node
+
+    #else
+    mv t1, t0 # prev = current
+    mv t2, t0 # last = current
+    lw t0, 1(t0) # current = current->next
+    j list_del_while
+
+  list_del_remove_node:
+    //TODO
+  
+  list_del_while_end:
+  j ra
 
 #exit stays as far as possible, unlikely scenarios far from the hot path (instruction cache locality)
 exit:

@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-10 15:51:09                                                
+last edited: 2025-04-11 14:10:07                                                
 
 ================================================================================*/
 
@@ -65,18 +65,19 @@ void del(t_node **head, t_node **tail, const char data)
   t_node *current = *head;
   t_node *prev = NULL;
   t_node *last = NULL;
-  
+
   while (current != NULL)
   {
     if (current->data == data)
     {
       t_node *to_delete = current;
-      
-      if (prev == NULL) //the node to delete is the ead
-        *head = current = current->next;
+      current = current->next;
+
+      if (prev == NULL) //the node to delete is the head
+        *head = current;
       else //skip the node by changing pointers
-        prev->next = current = current->next;
-          
+        prev->next = current;
+
       free(to_delete);
     }
     else
