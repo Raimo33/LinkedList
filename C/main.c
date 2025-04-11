@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-10 15:51:09                                                
+last edited: 2025-04-11 18:02:28                                                
 
 ================================================================================*/
 
@@ -17,7 +17,7 @@ static void run(t_node **head, t_node **tail, char *input);
 static uint8_t tokenize(char *input, const char sep);
 static uint8_t handle_operation(t_node **head, t_node **tail, char *command);
 static bool is_valid_normal_cmd(const char *command);
-static bool is_valid_parameterized_cmd(const char *command);
+static bool is_valid_parametrized_cmd(const char *command);
 static bool is_valid_args(const char *args);
 static bool strnmatch(const char *s1, const char *s2, size_t n);
 static size_t m_strlen(const char *s);
@@ -309,14 +309,14 @@ static uint8_t handle_operation(t_node **head, t_node **tail, char *command)
   const uint8_t segment_len = m_strlen(command);
 
   tokenize(command, ' '); //tokenize by spaces
-  const bool is_valid = is_valid_normal_cmd(command) || is_valid_parameterized_cmd(command);
+  const bool is_valid = is_valid_normal_cmd(command) || is_valid_parametrized_cmd(command);
 
   if (!is_valid)
     goto end;
 
-  const char *command_strings[] = { "ADD(", "DEL(", "SORT\0", "REV\0", "PRINT\0" };
-  const void (*list_functions[])(t_node **, t_node **, const char) = { add, del, sort, rev, print };
-  const uint8_t command_lengths[] = { 4, 4, 5, 5, 6 };
+  const char *command_strings[] = { "ADD(", "DEL(", "PRINT\0", "SORT\0", "REV\0" };
+  const void (*list_functions[])(t_node **, t_node **, const char) = { add, del, print, sort, rev };
+  const uint8_t command_lengths[] = { 4, 4, 6, 5, 5 };
   const uint8_t n_commands = sizeof(command_strings) / sizeof(command_strings[0]);
 
   for (uint8_t i = 0; i < n_commands; i++)
@@ -343,8 +343,8 @@ implementation:\
 */
 static bool is_valid_normal_cmd(const char *command)
 {
-  const char *command_strings[] = { "SORT\0", "REV\0", "PRINT\0"};
-  const uint8_t command_lengths[] = { 5, 5, 6 };
+  const char *command_strings[] = { "PRINT\0", "SORT\0", "REV\0" };
+  const uint8_t command_lengths[] = { 6, 5, 5 };
   const uint8_t n_commands = sizeof(command_strings) / sizeof(command_strings[0]);
 
   for (uint8_t i = 0; i < n_commands; i++)
@@ -358,13 +358,13 @@ static bool is_valid_normal_cmd(const char *command)
 
 /*
 description:
-  checks if the command is a valid parameterized command (with parameters).
+  checks if the command is a valid parametrized command (with parameters).
   returns true if the command is valid, false otherwise.
 
 implementation:
   use of array of commands and lengths for more readability / mantainability.
 */
-static bool is_valid_parameterized_cmd(const char *command)
+static bool is_valid_parametrized_cmd(const char *command)
 {
   const char *valid_commands[] = { "ADD(", "DEL(" };
   const uint8_t command_lengths[] = { 4, 4 };

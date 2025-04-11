@@ -19,28 +19,28 @@ heap_ptr: .word 0x00FFFFFF
 
 command_add:    .string "ADD("
 command_del:    .string "DEL("
-command_rev:    .string "REV"
+command_print:  .string "PRINT"
                 .byte 0
 command_sort:   .string "SORT"
                 .byte 0
-command_print:  .string "PRINT"
+command_rev:    .string "REV"
                 .byte 0
 
 #arrary of command strings
 command_strings:
   .word command_add
   .word command_del
-  .word command_rev
-  .word command_sort
   .word command_print
+  .word command_sort
+  .word command_rev
 
 #array of command string lengths
 command_lengths:
   .byte 4
   .byte 4
-  .byte 5
-  .byte 5
   .byte 6
+  .byte 5
+  .byte 5
   
 .text
 
@@ -199,21 +199,21 @@ list_rev:
 list_functions:
   .word list_add
   .word list_del
-  .word list_rev
-  .word list_sort
   .word list_print
+  .word list_sort
+  .word list_rev
 
 n_commands: .byte 5
 
 command_strings_normal:
-  .word command_rev
-  .word command_sort
   .word command_print
+  .word command_sort
+  .word command_rev
 
 command_lengths_normal:
-  .byte 4
-  .byte 5
   .byte 6
+  .byte 5
+  .byte 4
 
 n_commands_normal: .byte 3
 
