@@ -1,19 +1,19 @@
-# general rules of thumb:
-#   - a0-a7 are used for function arguments and return values (a0 is the return value, a7 is the syscall argument)
-#   - s0-s11 are used for callee registers
-#   - t0-t6 are used for temporary registers
-#   - sp is the stack pointer
-#   - ra is the return address register
-#   - zero is the zero register (always 0)
+#general rules of thumb:
+#  - a0-a7 are used for function arguments and return values (a0 is the return value, a7 is the syscall argument)
+#  - s0-s11 are used for callee registers
+#  - t0-t6 are used for temporary registers
+#  - sp is the stack pointer
+#  - ra is the return address register
+#  - zero is the zero register (always 0)
 
-# if a function needs to use a s0-s11 register, it must save the value to the stack and restore it as it was before returning
-# if a function calls a function, it must save the ra register to the stack and restore it as it was before returning
+#if a function needs to use a s0-s11 register, it must save the value to the stack and restore it as it was before returning
+#if a function calls a function, it must save the ra register to the stack and restore it as it was before returning
 
 .data
 
-head_ptr: .word 0x10000000
-tail_ptr: .word 0x10000000
-list_input: .string "ADD(1)"
+head_ptr: .word 0x0
+tail_ptr: .word 0x0
+list_input: .string "ADD(1) ~ PRINT"
 
 heap_ptr: .word 0x00FFFFFF
 
@@ -78,8 +78,8 @@ malloc:
   la t2, mempool
   la t3, free_list
 
-  lbu t0, 0(t0) # node_size
-  lbu t1, 0(t1) # max_nodes
+  lbu t0, 0(t0) #node_size
+  lbu t1, 0(t1) #max_nodes
 
   #for (i = 0; i < max_nodes; i++)
   li t4, 0 #i = 0
@@ -88,7 +88,7 @@ malloc:
 
     #if (free_list[i] == 0)
     add t5, t3, t4
-    lbu t6, 0(t5) # free_list[i]
+    lbu t6, 0(t5) #free_list[i]
     beqz t6, malloc_found
 
     addi t4, t4, 1
@@ -98,9 +98,9 @@ malloc:
     ret
   malloc_found:
     li t6, 1
-    sb t6, 0(t5) # free_list[i] = 1
+    sb t6, 0(t5) #free_list[i] = 1
 
-    mul t6, t4, t0 # offset = i * sizeof(t_node)
+    mul t6, t4, t0 #offset = i * sizeof(t_node)
     add a0, t2, t6
     ret
 
@@ -115,14 +115,14 @@ list_add:
   sw s1, 4(sp)
   sw s2, 8(sp) 
 
-  mv s0, a0 # head
-  mv s1, a1 # tail
-  mv s2, a2 # data
+  mv s0, a0 #head
+  mv s1, a1 #tail
+  mv s2, a2 #data
 
   #t_node *new_node = malloc(sizeof(t_node));
   li a0, 5
   jal malloc
-  mv t0, a0 # new_node
+  mv t0, a0 #new_node
 
   #if (new_node == NULL) -> exit
   beqz t0, exit
@@ -136,13 +136,13 @@ list_add:
 
   #else
   lw t1, 0(s1)
-  sw t0, 1(t1) # (*tail)->next = new_node
-  sw t0, 0(s1) # *tail = new_node
+  sw t0, 1(t1) #(*tail)->next = new_node
+  sw t0, 0(s1) #*tail = new_node
   j list_add_end
 
 list_add_update_head:
-  sw t0, 0(s0) # *head = new_node
-  sw t0, 0(s1) # *tail = new_node
+  sw t0, 0(s0) #*head = new_node
+  sw t0, 0(s1) #*tail = new_node
 
 list_add_end:
 
@@ -162,7 +162,7 @@ free_node:
   la t1, free_list
   la t2, node_size
 
-  lbu t2, 0(t2) # node_size
+  lbu t2, 0(t2) #node_size
 
   #index = (node - mempool) / sizeof(t_node)
   sub t3, a0, t0
@@ -188,13 +188,13 @@ list_del:
   sw s4, 16(sp)
   sw s5, 20(sp)
 
-  mv s0, a0 # head
-  mv s1, a1 # tail
-  mv s2, a2 # data
+  mv s0, a0 #head
+  mv s1, a1 #tail
+  mv s2, a2 #data
 
-  lw s3, 0(a0) # t_node *current = *head;
-  li s4, 0 # t_node *prev = NULL;
-  li s5, 0 # t_node *last = NULL;
+  lw s3, 0(a0) #t_node *current = *head;
+  li s4, 0 #t_node *prev = NULL;
+  li s5, 0 #t_node *last = NULL;
 
   #while (current != NULL)
   list_del_loop:
@@ -202,21 +202,21 @@ list_del:
 
     lb t3, 0(s3)
     xor t3, t3, a2
-    seqz t3, t3 # current->data == data
+    seqz t3, t3 #current->data == data
 
     #if (current->data == data)
     bnez t3, list_del_continue
-      mv t3, s3 # t_node *to_delete = current
-      lw s3, 1(s3) # current = current->next
+      mv t3, s3 #t_node *to_delete = current
+      lw s3, 1(s3) #current = current->next
 
       #if (prev == NULL)
       bnez s4, list_del_update_prev
-        sw s3, 0(a0) # *head = current
+        sw s3, 0(a0) #*head = current
         j list_del_loop
 
       #else
       list_del_update_prev:
-        sw s3, 1(s4) # prev->next = current
+        sw s3, 1(s4) #prev->next = current
 
       #free_node(to_delete)
       mv a0, t3
@@ -226,14 +226,14 @@ list_del:
 
     #else
     list_del_continue:
-      mv s4, s3 # prev = current
-      mv s5, s3 # last = current
-      lw s3, 1(s3) # current = current->next
+      mv s4, s3 #prev = current
+      mv s5, s3 #last = current
+      lw s3, 1(s3) #current = current->next
 
     j list_del_loop
   list_del_loop_end:
 
-  sw s5, 0(s1) # *tail = last
+  sw s5, 0(s1) #*tail = last
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -254,16 +254,15 @@ list_print:
   addi sp, sp, -4
   sw ra, 0(sp)
 
-  lw t0, 0(a0) # t_node *current = *head;
-
-  #if (current == NULL)
+  lw t0, 0(a0) #t_node *current = *head;
+  #if (current == NULL) -> exit
   beqz t0, list_print_end
 
-  lb a0, 0(t0)
-  li a7, 11 # syscall number for putchar
+  lbu a0, 0(t0)
+  li a7, 11 #syscall for putchar
   ecall
 
-  #print(&current->next, NULL, 0)
+  #print(&current->next, NULL, 0);
   addi a0, t0, 1
   li a1, 0
   li a2, 0
@@ -356,19 +355,20 @@ run:
   addi sp, sp, -4
   sw ra, 0(sp)
 
-  mv s0, a0 # head
-  mv s1, a1 # tail
-  mv s2, a2 # input
+  mv s0, a0 #head
+  mv s1, a1 #tail
+  mv s2, a2 #input
 
   #tokenize(input, '~')
   mv a0, s2
   li a1, 126 #'~' in ASCII
   jal tokenize
-  mv s3, a0 # n_commands
+  mv s3, a0 #n_commands
 
   #while (n_commands > 0)
   run_loop:
     beqz s3, run_end_loop
+    addi s3, s3, -1
 
     #input += (input[0] == ' ')
     lb t0, 0(s2)
@@ -387,7 +387,6 @@ run:
     sltu t0, zero, s3
     add s2, s2, t0
 
-    addi s3, s3, -1
     j run_loop
   run_end_loop:
 
@@ -413,14 +412,14 @@ handle_operation:
   sw s8, 32(sp)
   sw s9, 36(sp)
 
-  mv s0, a0 # head
-  mv s1, a1 # tail
-  mv s2, a2 # command
+  mv s0, a0 #head
+  mv s1, a1 #tail
+  mv s2, a2 #command
 
   #uint8_t segment_len = strlen(command);
   mv a0, s2
   jal strlen
-  mv s3, a0 # segment_len
+  mv s3, a0 #segment_len
 
   #tokenize(command, ' ')
   mv a0, s2
@@ -430,7 +429,7 @@ handle_operation:
   #bool is_valid = is_valid_normal_cmd(command)
   mv a0, s2
   jal is_valid_normal_cmd
-  mv s4, a0 # is_valid
+  mv s4, a0 #is_valid
 
   #if (is_valid) -> early exit
   bnez s4, handle_operation_valid
@@ -438,7 +437,7 @@ handle_operation:
   #is_valid = is_valid_parameterized_cmd(command);
   mv a0, s2
   jal is_valid_parameterized_cmd
-  or s4, s4, a0 # is_valid
+  or s4, s4, a0 #is_valid
 
   #if (!is_valid) goto end
   beqz s4, handle_operation_end
@@ -448,15 +447,15 @@ handle_operation_valid:
   la s6, command_lengths
   la s7, n_commands
 
-  lbu s7, 0(s7) # n_commands
+  lbu s7, 0(s7) #n_commands
 
   #for (uint8_t i = 0; i < n_commands; i++)
-  li s4, 0 # i
+  li s4, 0 #i
   handle_operation_loop:
     beq s4, s7, handle_operation_end
 
     add s8, s6, s4
-    lbu s8, 0(s8) # command_len
+    lbu s8, 0(s8) #command_len
 
     slli s9, s4, 2
     add s9, s5, s9
@@ -471,28 +470,26 @@ handle_operation_valid:
     #if (strnmatch(command, command_str, command_len) == true)
       li s9, 1
       beq a0, s9, handle_operation_call_function
-    #else
-      j handle_operation_loop #continue
 
-handle_operation_call_function:
-  la t0, list_functions
-  slli t1, s4, 2
-  add t0, t0, t1
-  lw t0, 0(t0) # functions[i]
+    addi s4, s4, 1
+    j handle_operation_loop #continue
 
-  add t1, s2, s8
-  lb t1, 0(t1) # c = command[command_len]
+  handle_operation_call_function:
+    la t0, list_functions
+    slli t1, s4, 2
+    add t0, t0, t1
+    lw t0, 0(t0) #functions[i]
 
-  # function(head, tail, c)
-  mv a0, s0
-  mv a1, s1
-  mv a2, t1
-  jalr ra, t0, 0
+    add t1, s2, s8
+    lb t1, 0(t1) #c = command[command_len]
 
-  addi s4, s4, 1
-
+    #function(head, tail, c)
+    mv a0, s0
+    mv a1, s1
+    mv a2, t1
+    jalr ra, t0, 0
 handle_operation_end:
-  mv t0, s3 # segment_len
+  mv t0, s3 #segment_len
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -510,7 +507,7 @@ handle_operation_end:
   lw ra, 0(sp)
   addi sp, sp, 4
 
-  mv a0, t0 # return segment_len
+  mv a0, t0 #return segment_len
   ret
 
 #bool strnmatch(const char *s1, const char *s2, size_t n)
@@ -520,13 +517,13 @@ strnmatch:
   or t0, t0, a1
   snez t0, t0
 
-  li t1, 1 # bool result = true
+  li t1, 1 #bool result = true
 
   #while (n > 0)
   strnmatch_loop:
     beqz a2, strnmatch_end_loop
-    lb t2, 0(a0) # c1
-    lb t3, 0(a1) # c2
+    lb t2, 0(a0) #c1
+    lb t3, 0(a1) #c2
 
     #increment pointers while LOAD completes (no stall this way)
     addi a0, a0, 1
@@ -579,26 +576,26 @@ is_valid_normal_cmd:
   sw s3, 12(sp)
   sw s4, 16(sp)
 
-  mv s0, a0 # command
+  mv s0, a0 #command
 
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_normal
   la s2, command_lengths_normal
   la s4, n_commands_normal
 
-  lbu s4, 0(s4) # n_commands_normal
+  lbu s4, 0(s4) #n_commands_normal
 
-  li s3, 0 # i
+  li s3, 0 #i
   #for (uint8_t i = 0; i < n_commands; i++)
   is_valid_normal_cmd_loop:
     beq s4, s3, is_valid_normal_cmd_end_loop
 
     slli t0, s3, 2
     add t0, s1, t0
-    lw t0, 0(t0) # command_strings[i]
+    lw t0, 0(t0) #command_strings[i]
 
     add t1, s2, s3
-    lbu t1, 0(t1) # command_lengths[i]
+    lbu t1, 0(t1) #command_lengths[i]
 
     #strnmatch(command, command_str, command_len)
     mv a0, s0
@@ -607,7 +604,7 @@ is_valid_normal_cmd:
     jal strnmatch
     mv t1, a0 #is_valid
 
-    addi s3, s3, 1 # i++
+    addi s3, s3, 1 #i++
 
     #if (!valid) -> continue
     beqz t1, is_valid_normal_cmd_loop
@@ -641,26 +638,26 @@ is_valid_parameterized_cmd:
   sw s4, 16(sp)
   sw s5, 20(sp)
 
-  mv s0, a0 # command
+  mv s0, a0 #command
 
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_parameterized
   la s2, command_lengths_parameterized
   la s3, n_commands_parameterized
 
-  lbu s3, 0(s3) # n_commands_parameterized
+  lbu s3, 0(s3) #n_commands_parameterized
 
-  li s4, 0 # i
+  li s4, 0 #i
   #for (uint8_t i = 0; i < n_commands; i++)
   is_valid_parameterized_cmd_loop:
     beq s4, s3, is_valid_parameterized_cmd_end_loop
 
     add s5, s2, s4
-    lbu s5, 0(s5) #  uint8_t command_len = command_lengths[i]
+    lbu s5, 0(s5) # uint8_t command_len = command_lengths[i]
 
     slli t0, s4, 2
     add t0, s1, t0
-    lw t0, 0(t0) # command_strings[i]
+    lw t0, 0(t0) #command_strings[i]
 
     #strnmatch(command, command_str, command_len)
     mv a0, s0
@@ -669,7 +666,7 @@ is_valid_parameterized_cmd:
     jal strnmatch
     mv t1, a0 #is_valid
 
-    addi s4, s4, 1 # i++
+    addi s4, s4, 1 #i++
 
     #if (!is_valid) -> continue
     beqz t1, is_valid_parameterized_cmd_loop #continue 
@@ -677,7 +674,7 @@ is_valid_parameterized_cmd:
     #return is_valid_args(&command[command_len]);
     add a0, s0, s5
     jal is_valid_args
-    mv t1, a0 # is_valid
+    mv t1, a0 #is_valid
   is_valid_parameterized_cmd_end_loop:
 
   #restore S registers from the stack
@@ -698,8 +695,8 @@ is_valid_parameterized_cmd:
 
 #bool is_valid_args(const char *args)
 is_valid_args:
-  lb t0, 0(a0) # args[0]
-  lb t1, 1(a0) # args[1]
+  lb t0, 0(a0) #args[0]
+  lb t1, 1(a0) #args[1]
   li t2, 41 #closed parenthesis in ASCII
 
   #return (c != '\0') & (c != 41) & (args[1] == 41);
@@ -723,7 +720,7 @@ strlen:
 
   #while (*s != '\0')
   strlen_loop:
-    lb t1, 0(a0) # c
+    lb t1, 0(a0) #c
     beqz t1, strlen_end_loop
 
     addi t0, t0, 1
