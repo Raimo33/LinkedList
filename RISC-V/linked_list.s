@@ -73,7 +73,7 @@ list_add:
 
   #t_node *new_node = malloc(sizeof(t_node));
   li a0, 5
-  j malloc
+  jal malloc
   mv t0, a0 # new_node
 
   #if (new_node == NULL) -> exit
@@ -174,7 +174,7 @@ list_print:
   addi a0, t0, 1
   li a1, 0
   li a2, 0
-  j list_print
+  jal list_print
 
 list_print_end:
   lw ra, 0(sp)
@@ -351,51 +351,50 @@ handle_operation:
   beqz s4, handle_operation_end
 handle_operation_valid:
 
-  #load statically compiled arrays (no stalls since each load is independent)
   la s5, command_strings
   la s6, command_lengths
-  la s7, list_functions
-  lb s8, n_commands
+  lb s7, n_commands
 
   #for (uint8_t i = 0; i < n_commands; i++)
-  li t0, 0 # i
+  li s4, 0 # i
   handle_operation_for:
-    beq t0, s8, handle_operation_end
+    beq s4, s7, handle_operation_end
 
-    add s9, s6, t0
-    lb s9, 0(s9) # command_len
+    add s8, s6, s4
+    lb s8, 0(s8) # command_len
 
-    slli t1, t0, 2
-    add t1, s5, t1
-    lw t1, 0(t1) #command_strings[i]
+    slli s9, s4, 2
+    add s9, s5, s9
+    lw s9, 0(s9) #command_strings[i]
 
     #strnmatch(command, command_str, command_len)
     mv a0, s2
-    mv a1, t1
-    mv a2, s9
+    mv a1, s9
+    mv a2, s8
     jal strnmatch
 
     #if (strnmatch(command, command_str, command_len) == true)
-      li t1, 1
-      beq a0, t1, handle_operation_call_function
+      li s9, 1
+      beq a0, s9, handle_operation_call_function
     #else
       j handle_operation_for #continue
 
 handle_operation_call_function:
-  slli t1, t0, 2
-  add t1, s7, t1
-  lw t1, 0(t1) # functions[i]
+  la t0, list_functions
+  slli t1, s4, 2
+  add t0, t0, t1
+  lw t0, 0(t0) # functions[i]
 
-  add t2, s2, s9
-  lb t2, 0(t2) # c = command[command_len]
+  add t1, s2, s8
+  lb t1, 0(t1) # c = command[command_len]
 
   # function(head, tail, c)
   mv a0, s0
   mv a1, s1
-  mv a2, t2
-  jalr ra, t1, 0
+  mv a2, t1
+  jalr ra, t0, 0
 
-  addi t0, t0, 1
+  addi s4, s4, 1
 
 handle_operation_end:
   #restore S registers from the stack
