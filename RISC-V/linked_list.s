@@ -605,11 +605,12 @@ is_valid_normal_cmd:
     mv a1, t0
     mv a2, t1
     jal strnmatch
+    mv t1, a0 #is_valid
 
     addi s3, s3, 1 # i++
 
-    #if (strnmatch(command, command_str, command_len) == false) -> continue
-    beqz a0, is_valid_normal_cmd_loop
+    #if (!valid) -> continue
+    beqz t1, is_valid_normal_cmd_loop
   is_valid_normal_cmd_end_loop:
 
   #restore S registers from the stack
@@ -623,6 +624,7 @@ is_valid_normal_cmd:
   lw ra, 0(sp)
   addi sp, sp, 4
 
+  mv a0, t1 #return is_valid
   ret
 
 #bool is_valid_parameterized_cmd(const char *command)
@@ -665,16 +667,18 @@ is_valid_parameterized_cmd:
     mv a1, t0
     mv a2, s5
     jal strnmatch
+    mv t1, a0 #is_valid
 
     addi s4, s4, 1 # i++
 
-    #if (strnmatch(command, command_str, command_len) == false);
-    beqz a0, is_valid_parameterized_cmd_loop #continue 
+    #if (!is_valid) -> continue
+    beqz t1, is_valid_parameterized_cmd_loop #continue 
 
     #return is_valid_args(&command[command_len]);
     add a0, s0, s5
     jal is_valid_args
-  is_valid_parameterized_cmd_end_loop: #at this point a0 will already contain the boolean result
+    mv t1, a0 # is_valid
+  is_valid_parameterized_cmd_end_loop:
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -688,6 +692,8 @@ is_valid_parameterized_cmd:
   lw ra, 0(sp)
   addi sp, sp, 4
 
+  #return is_valid
+  mv a0, t1
   ret
 
 #bool is_valid_args(const char *args)
