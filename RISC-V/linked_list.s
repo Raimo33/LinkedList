@@ -13,7 +13,7 @@
 
 head_ptr: .word 0x0
 tail_ptr: .word 0x0
-list_input: .string "ADD(1) ~ PRINT"
+list_input: .string "ADD(1) ~ DEL(1) ~ PRINT"
 
 heap_ptr: .word 0x00FFFFFF
 
@@ -200,35 +200,31 @@ list_del:
   list_del_loop:
     beqz s3, list_del_loop_end
 
-    lb t3, 0(s3)
+    lb t3, 0(s3) #current->data
+
     xor t3, t3, a2
-    seqz t3, t3 #current->data == data
+    beqz t3, list_del_remove_node  #if (current->data == data)
 
-    #if (current->data == data)
-    bnez t3, list_del_continue
-      mv t3, s3 #t_node *to_delete = current
-      lw s3, 1(s3) #current = current->next
+    mv s4, s3 #prev = current
+    mv s5, s3 #last = current
+    lw s3, 1(s3) #current = current->next
 
-      #if (prev == NULL)
-      bnez s4, list_del_update_prev
-        sw s3, 0(a0) #*head = current
-        j list_del_loop
+    j list_del_loop
+  list_del_remove_node:
+    mv t3, s3 #t_node *to_delete = current
+    lw s3, 1(s3) #current = current->next
 
-      #else
-      list_del_update_prev:
-        sw s3, 1(s4) #prev->next = current
+    beqz s4, list_del_update_head  #if (prev == NULL)
+    sw s3, 1(s4) #prev->next = current
+    j list_del_free_node
 
-      #free_node(to_delete)
-      mv a0, t3
-      jal free_node
+  list_del_update_head:
+    sw s3, 0(s0) #*head = current
 
-      j list_del_loop
-
-    #else
-    list_del_continue:
-      mv s4, s3 #prev = current
-      mv s5, s3 #last = current
-      lw s3, 1(s3) #current = current->next
+  list_del_free_node:
+    #free_node(to_delete)
+    mv a0, t3
+    jal free_node
 
     j list_del_loop
   list_del_loop_end:
