@@ -13,7 +13,7 @@
 
 head_ptr: .word 0x0
 tail_ptr: .word 0x0
-list_input: .string "ADD(x) ~ P RINT ~ PPRINT ~ PRINTT ~ PRINT()"
+list_input: .string "ADD(x) ~ ADD(y) ~ ADD(z) ~ ADD(w) ~ REV ~ PRINT"
 
 heap_ptr: .word 0x00FFFFFF
 
@@ -44,7 +44,6 @@ command_lengths:
   
 .text
 
-#TODO add tests
 main:
   la a0, head_ptr
   la a1, tail_ptr
@@ -86,23 +85,22 @@ malloc:
   malloc_loop:
     bgeu t4, t1, malloc_full
 
-    #if (free_list[i] == 0)
     add t5, t3, t4
-    lbu t6, 0(t5) #free_list[i]
-    beqz t6, malloc_found
+    lbu t6, 0(t5)
+    beqz t6, malloc_found #if (free_list[i] == 0)
 
     addi t4, t4, 1
     j malloc_loop
-  malloc_full:
-    li a0, 0
-    ret
-  malloc_found:
-    li t6, 1
-    sb t6, 0(t5) #free_list[i] = 1
+malloc_full:
+  li a0, 0
+  ret
+malloc_found:
+  li t6, 1
+  sb t6, 0(t5) #free_list[i] = 1
 
-    mul t6, t4, t0 #offset = i * sizeof(t_node)
-    add a0, t2, t6
-    ret
+  mul t6, t4, t0 #offset = i * sizeof(t_node)
+  add a0, t2, t6
+  ret
 
 #void add(t_node **head, t_node **tail, const char data)
 list_add:
@@ -123,18 +121,14 @@ list_add:
   li a0, 5
   jal malloc
   mv t0, a0 #new_node
-
-  #if (new_node == NULL) -> exit
-  beqz t0, exit
+  beqz t0, exit #if (new_node == NULL)
 
   sb s2, 0(t0) #new_node->data = data;
   sw zero, 1(t0) #new_node->next = NULL;
 
-  #if (*head == NULL)
   lw t1, 0(s0)
-  beqz t1, list_add_update_head
+  beqz t1, list_add_update_head #if (*head == NULL)
 
-  #else
   lw t1, 0(s1)
   sw t0, 1(t1) #(*tail)->next = new_node
   sw t0, 0(s1) #*tail = new_node
@@ -145,7 +139,6 @@ list_add_update_head:
   sw t0, 0(s1) #*tail = new_node
 
 list_add_end:
-
   #restore S registers from the stack
   lw s0, 0(sp)
   lw s1, 4(sp)
@@ -277,9 +270,35 @@ list_sort:
 #TODO
 #void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
 
-#TODO
 #void rev(t_node **head, t_node **tail, const char data)
 list_rev:
+  lw t0, 0(a0) #t_node *current = *head;
+  lw t1, 0(a1)
+
+  #if ((*head == NULL) | (*tail == NULL))
+  seqz t2, t0
+  seqz t3, t1
+  or t2, t2, t3
+  bnez t2, list_rev_end
+
+  mv t1, t0 #t_node *original_head = *current
+  li t2, 0 #t_node *prev = NULL
+  li t3, 0 #t_node *next = NULL
+
+  #while (current != NULL)
+  list_rev_loop:
+    beqz t0, list_rev_end_loop
+    lw t3, 1(t0) #next = current->next
+    sw t2, 1(t0) #current->next = prev
+    mv t2, t0 #prev = current
+    mv t0, t3 #current = next
+    j list_rev_loop
+  list_rev_end_loop:
+
+  sw t2, 0(a0) #*head = prev
+  sw t1, 0(a1) #*tail = original_head
+list_rev_end:
+  ret
 
 .data
 
