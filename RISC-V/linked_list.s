@@ -13,7 +13,7 @@
 
 head_ptr: .word 0x0
 tail_ptr: .word 0x0
-list_input: .string "ADD(1) ~ DEL(1) ~ PRINT"
+list_input: .string "ADD(x) ~ P RINT ~ PPRINT ~ PRINTT ~ PRINT()"
 
 heap_ptr: .word 0x00FFFFFF
 
@@ -518,6 +518,8 @@ strnmatch:
   #while (n > 0)
   strnmatch_loop:
     beqz a2, strnmatch_end_loop
+    addi a2, a2, -1
+
     lb t2, 0(a0) #c1
     lb t3, 0(a1) #c2
 
@@ -546,11 +548,10 @@ strnmatch:
     and t1, t1, t5
 
     #bool continue_mask = result != false
-    snez t1, t1
+    snez t2, t1
 
-    addi a2, a2, -1
     #n *= continue_mask;
-    and a2, a2, t1
+    mul a2, a2, t2
 
     j strnmatch_loop
   strnmatch_end_loop:
