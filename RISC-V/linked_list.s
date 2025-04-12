@@ -492,6 +492,8 @@ handle_operation_call_function:
   addi s4, s4, 1
 
 handle_operation_end:
+  mv t0, s3 # segment_len
+
   #restore S registers from the stack
   lw s0, 0(sp)
   lw s1, 4(sp)
@@ -508,8 +510,7 @@ handle_operation_end:
   lw ra, 0(sp)
   addi sp, sp, 4
 
-  #return segment_len
-  mv a0, s3
+  mv a0, t0 # return segment_len
   ret
 
 #bool strnmatch(const char *s1, const char *s2, size_t n)
