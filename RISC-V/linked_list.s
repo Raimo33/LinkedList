@@ -52,9 +52,24 @@ main:
   jal run
   j exit
 
-#void *malloc(size_t size)
+.data
+
+#memory pool for a max of 30 nodes. (Ripes does not support .space)
+mempool: .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+#boolean array (0 = free, 1 = alloc'd) of size 30
+free_list: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+           .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+           .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+.text
+
+#void *alloc_node()
 malloc:
-  #TODO: look for a region of size bytes in the heap (free-list)
+  
 
 #void add(t_node **head, t_node **tail, const char data)
 list_add:
@@ -110,50 +125,83 @@ list_add_end:
   addi sp, sp, 4
   ret
 
-#void free(t_node *node)
-free:
-  #TODO: free the node and add it to the free-list
+#void free_node(t_node *node)
+free_node:
+  #TODO: free the node and set the block as free
 
 #void del(t_node **head, t_node **tail, const char data)
 list_del:
-  lw t0, 0(a0) # t_node *current = *head;
-  li t1, 0 # t_node *prev = NULL;
-  li t2, 0 # t_node *last = NULL;
+  addi sp, sp, -4
+  sw ra, 0(sp)
+
+  #save S registers on the stack in order to make space
+  addi sp, sp, -24
+  sw s0, 0(sp)
+  sw s1, 4(sp)
+  sw s2, 8(sp)
+  sw s3, 12(sp)
+  sw s4, 16(sp)
+  sw s5, 20(sp)
+
+  mv s0, a0 # head
+  mv s1, a1 # tail
+  mv s2, a2 # data
+
+  lw s3, 0(a0) # t_node *current = *head;
+  li s4, 0 # t_node *prev = NULL;
+  li s5, 0 # t_node *last = NULL;
 
   #while (current != NULL)
   list_del_while:
-    beqz t0, list_del_while_end
+    beqz s3, list_del_while_end
 
-    lb t3, 0(t0)
+    lb t3, 0(s3)
     xor t3, t3, a2
     seqz t3, t3 # current->data == data
 
     #if (current->data == data)
     bnez t3, list_del_continue
-      mv t3, t0 # t_node *to_delete = current
-      lw t0, 1(t0) # current = current->next
+      mv t3, s3 # t_node *to_delete = current
+      lw s3, 1(s3) # current = current->next
 
       #if (prev == NULL)
-      bnez t1, list_del_update_prev
-        sw t0, 0(a0) # *head = current
+      bnez s4, list_del_update_prev
+        sw s3, 0(a0) # *head = current
         j list_del_while
 
       #else
       list_del_update_prev:
-        sw t0, 1(t1) # prev->next = current
+        sw s3, 1(s4) # prev->next = current
+
+      #free_node(to_delete)
+      mv a0, t3
+      jal free_node
 
       j list_del_while
 
     #else
     list_del_continue:
-      mv t1, t0 # prev = current
-      mv t2, t0 # last = current
-      lw t0, 1(t0) # current = current->next
+      mv s4, s3 # prev = current
+      mv s5, s3 # last = current
+      lw s3, 1(s3) # current = current->next
 
     j list_del_while
   list_del_while_end:
 
-  lw t2, 0(a1) #tail = last
+  sw s5, 0(s1) # *tail = last
+
+  #restore S registers from the stack
+  lw s0, 0(sp)
+  lw s1, 4(sp)
+  lw s2, 8(sp)
+  lw s3, 12(sp)
+  lw s4, 16(sp)
+  lw s5, 20(sp)
+  addi sp, sp, 24
+
+  lw ra, 0(sp)
+  addi sp, sp, 4
+
   ret
 
 #void print(t_node **head, t_node **tail, const char data)
