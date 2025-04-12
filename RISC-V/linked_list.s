@@ -54,11 +54,15 @@ main:
 
 .data
 
-#memory pool for a max of 30 nodes. (Ripes does not support .space)
-mempool: .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+node_size: .byte 5
+max_nodes: .byte 30
+
+#memory pool for a max of 30 nodes (5 * 30 bytes). (Ripes does not support .space)
+mempool: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+         .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+         .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+         .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+         .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 #boolean array (0 = free, 1 = alloc'd) of size 30
 free_list: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -67,9 +71,35 @@ free_list: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 .text
 
-#void *alloc_node()
+#void *alloc_node(void)
 malloc:
-  
+  lbu t0, (0)node_size
+  lbu t1, (0)max_nodes
+  la t2, mempool
+  la t3, free_list
+
+  #for (i = 0; i < max_nodes; i++)
+  li t4, 0 #i = 0
+  malloc_loop:
+    bgeu t4, t1, malloc_full
+
+    #if (free_list[i] == 0)
+    add t5, t3, t4
+    lbu t6, 0(t5) # free_list[i]
+    beqz t6, malloc_found
+
+    addi t4, t4, 1
+    j malloc_loop
+  malloc_full:
+    li a0, 0
+    ret
+  malloc_found:
+    li t6, 1
+    sb t6, 0(t5) # free_list[i] = 1
+
+    mul t6, t4, t0 # offset = i * sizeof(t_node)
+    add a0, t2, t6
+    ret
 
 #void add(t_node **head, t_node **tail, const char data)
 list_add:
@@ -127,7 +157,19 @@ list_add_end:
 
 #void free_node(t_node *node)
 free_node:
-  #TODO: free the node and set the block as free
+  la t0, mempool
+  la t1, free_list
+  lbu t2, (0)node_size
+
+  #index = (node - mempool) / sizeof(t_node)
+  sub t3, a0, t0
+  div t3, t3, t2
+
+  #free_list[index] = 0
+  add t4, t1, t3
+  sb zero, 0(t4)
+
+  ret
 
 #void del(t_node **head, t_node **tail, const char data)
 list_del:
@@ -152,8 +194,8 @@ list_del:
   li s5, 0 # t_node *last = NULL;
 
   #while (current != NULL)
-  list_del_while:
-    beqz s3, list_del_while_end
+  list_del_loop:
+    beqz s3, list_del_loop_end
 
     lb t3, 0(s3)
     xor t3, t3, a2
@@ -167,7 +209,7 @@ list_del:
       #if (prev == NULL)
       bnez s4, list_del_update_prev
         sw s3, 0(a0) # *head = current
-        j list_del_while
+        j list_del_loop
 
       #else
       list_del_update_prev:
@@ -177,7 +219,7 @@ list_del:
       mv a0, t3
       jal free_node
 
-      j list_del_while
+      j list_del_loop
 
     #else
     list_del_continue:
@@ -185,8 +227,8 @@ list_del:
       mv s5, s3 # last = current
       lw s3, 1(s3) # current = current->next
 
-    j list_del_while
-  list_del_while_end:
+    j list_del_loop
+  list_del_loop_end:
 
   sw s5, 0(s1) # *tail = last
 
@@ -284,8 +326,8 @@ tokenize:
   li t2, 0 #is_delim
 
   #while (c != '\0')
-  tokenize_while:
-    beqz t1, tokenize_end_while
+  tokenize_loop:
+    beqz t1, tokenize_end_loop
 
     #is_delim = (c == sep)
     xor t2, t1, a1
@@ -299,8 +341,8 @@ tokenize:
     add t0, t0, t2 #n_commands += is_delim
     addi a0, a0, 1 #input++
     lb t1, 0(a0) #c = *input
-    j tokenize_while
-  tokenize_end_while:
+    j tokenize_loop
+  tokenize_end_loop:
 
   #return n_commands
   mv a0, t0
@@ -322,8 +364,8 @@ run:
   mv s3, a0 # n_commands
 
   #while (n_commands > 0)
-  run_while:
-    beqz s3, run_end_while
+  run_loop:
+    beqz s3, run_end_loop
 
     #input += (input[0] == ' ')
     lb t0, 0(s2)
@@ -343,8 +385,8 @@ run:
     add s2, s2, t0
 
     addi s3, s3, -1
-    j run_while
-  run_end_while:
+    j run_loop
+  run_end_loop:
 
   lw ra, 0(sp)
   addi sp, sp, 4
@@ -401,15 +443,15 @@ handle_operation_valid:
 
   la s5, command_strings
   la s6, command_lengths
-  lb s7, n_commands
+  lbu s7, (0)n_commands
 
   #for (uint8_t i = 0; i < n_commands; i++)
   li s4, 0 # i
-  handle_operation_for:
+  handle_operation_loop:
     beq s4, s7, handle_operation_end
 
     add s8, s6, s4
-    lb s8, 0(s8) # command_len
+    lbu s8, 0(s8) # command_len
 
     slli s9, s4, 2
     add s9, s5, s9
@@ -425,7 +467,7 @@ handle_operation_valid:
       li s9, 1
       beq a0, s9, handle_operation_call_function
     #else
-      j handle_operation_for #continue
+      j handle_operation_loop #continue
 
 handle_operation_call_function:
   la t0, list_functions
@@ -472,8 +514,8 @@ strnmatch:
   li t1, 1 # bool result = true
 
   #while (n > 0)
-  strnmatch_while:
-    beqz a2, strnmatch_end_while
+  strnmatch_loop:
+    beqz a2, strnmatch_end_loop
     lb t2, 0(a0) # c1
     lb t3, 0(a1) # c2
 
@@ -508,8 +550,8 @@ strnmatch:
     #n *= continue_mask;
     and a2, a2, t1
 
-    j strnmatch_while
-  strnmatch_end_while:
+    j strnmatch_loop
+  strnmatch_end_loop:
 
   #return result & safe_args
   and a0, t0, t1
@@ -533,19 +575,19 @@ is_valid_normal_cmd:
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_normal
   la s2, command_lengths_normal
-  lb s4, n_commands_normal
+  lbu s4, (0)n_commands_normal
 
   li s3, 0 # i
   #for (uint8_t i = 0; i < n_commands; i++)
-  is_valid_normal_cmd_for:
-    beq s4, s3, is_valid_normal_cmd_end_for
+  is_valid_normal_cmd_loop:
+    beq s4, s3, is_valid_normal_cmd_end_loop
 
     slli t0, s3, 2
     add t0, s1, t0
     lw t0, 0(t0) # command_strings[i]
 
     add t1, s2, s3
-    lb t1, 0(t1) # command_lengths[i]
+    lbu t1, 0(t1) # command_lengths[i]
 
     #strnmatch(command, command_str, command_len)
     mv a0, s0
@@ -556,8 +598,8 @@ is_valid_normal_cmd:
     addi s3, s3, 1 # i++
 
     #if (strnmatch(command, command_str, command_len) == false) -> continue
-    beqz a0, is_valid_normal_cmd_for
-  is_valid_normal_cmd_end_for:
+    beqz a0, is_valid_normal_cmd_loop
+  is_valid_normal_cmd_end_loop:
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -591,15 +633,15 @@ is_valid_parameterized_cmd:
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_parameterized
   la s2, command_lengths_parameterized
-  lb s3, n_commands_parameterized
+  lbu s3, (0)n_commands_parameterized
 
   li s4, 0 # i
   #for (uint8_t i = 0; i < n_commands; i++)
-  is_valid_parameterized_cmd_for:
-    beq s4, s3, is_valid_parameterized_cmd_end_for
+  is_valid_parameterized_cmd_loop:
+    beq s4, s3, is_valid_parameterized_cmd_end_loop
 
     add s5, s2, s4
-    lb s5, 0(s5) #  uint8_t command_len = command_lengths[i]
+    lbu s5, 0(s5) #  uint8_t command_len = command_lengths[i]
 
     slli t0, s4, 2
     add t0, s1, t0
@@ -614,12 +656,12 @@ is_valid_parameterized_cmd:
     addi s4, s4, 1 # i++
 
     #if (strnmatch(command, command_str, command_len) == false);
-    beqz a0, is_valid_parameterized_cmd_for #continue 
+    beqz a0, is_valid_parameterized_cmd_loop #continue 
 
     #return is_valid_args(&command[command_len]);
     add a0, s0, s5
     jal is_valid_args
-  is_valid_parameterized_cmd_end_for: #at this point a0 will already contain the boolean result
+  is_valid_parameterized_cmd_end_loop: #at this point a0 will already contain the boolean result
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -661,14 +703,14 @@ strlen:
   li t0, 0 #size_t len = 0
 
   #while (*s != '\0')
-  strlen_while:
+  strlen_loop:
     lb t1, 0(a0) # c
-    beqz t1, strlen_end_while
+    beqz t1, strlen_end_loop
 
     addi t0, t0, 1
     addi a0, a0, 1
-    j strlen_while
-  strlen_end_while:
+    j strlen_loop
+  strlen_end_loop:
 
   #return len
   mv a0, t0
