@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-11 14:10:07                                                
+last edited: 2025-04-12 18:57:10                                                
 
 ================================================================================*/
 
@@ -218,10 +218,10 @@ void rev(t_node **head, t_node **tail, const char data)
   if ((*head == NULL) | (*tail == NULL)) //same as (*head == NULL || *tail == NULL)
     return;
 
-  t_node *prev = NULL;
   t_node *current = *head;
+  t_node *original_head = current;
+  t_node *prev = NULL;
   t_node *next = NULL;
-  t_node *original_head = *head;
 
   while (current != NULL)
   {

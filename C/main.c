@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-11 18:02:28                                                
+last edited: 2025-04-12 18:57:10                                                
 
 ================================================================================*/
 
@@ -204,7 +204,7 @@ int main(void)
   //Rev - rev twice in a row
   {
     char input[] = "ADD(x) ~ ADD(y) ~ ADD(z) ~ ADD(w) ~ REV ~ REV ~ PRINT";
-    char expected[] = "wzyx";
+    char expected[] = "xyzw";
     RUN_TEST(input, expected);
   }
 
@@ -414,13 +414,13 @@ static bool strnmatch(const char *s1, const char *s2, size_t n)
   {
     char c1 = *s1;
     char c2 = *s2;
-    
+
     bool both_null = (c1 == '\0') & (c2 == '\0');
     bool chars_diff = (c1 != c2);
     bool either_null = (c1 == '\0') | (c2 == '\0');
 
     result &= ~(chars_diff | either_null) | both_null;
-    
+
     bool continue_mask = result != false;
     n *= continue_mask;
     s1++;
