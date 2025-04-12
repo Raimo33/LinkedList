@@ -127,10 +127,8 @@ list_add:
   #if (new_node == NULL) -> exit
   beqz t0, exit
 
-  #new_node->data = data;
-  sb s2, 0(t0)
-  #new_node->next = NULL;
-  sw zero, 1(t0) #TODO potential unaligned store
+  sb s2, 0(t0) #new_node->data = data;
+  sw zero, 1(t0) #new_node->next = NULL;
 
   #if (*head == NULL)
   lw t1, 0(s0)
@@ -509,6 +507,9 @@ handle_operation_end:
 
   lw ra, 0(sp)
   addi sp, sp, 4
+
+  #return segment_len
+  mv a0, s3
   ret
 
 #bool strnmatch(const char *s1, const char *s2, size_t n)
