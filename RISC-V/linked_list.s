@@ -73,10 +73,13 @@ free_list: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 #void *alloc_node(void)
 malloc:
-  lbu t0, (0)node_size
-  lbu t1, (0)max_nodes
+  la t0, node_size
+  la t1, max_nodes
   la t2, mempool
   la t3, free_list
+
+  lbu t0, 0(t0) # node_size
+  lbu t1, 0(t1) # max_nodes
 
   #for (i = 0; i < max_nodes; i++)
   li t4, 0 #i = 0
@@ -159,7 +162,9 @@ list_add_end:
 free_node:
   la t0, mempool
   la t1, free_list
-  lbu t2, (0)node_size
+  la t2, node_size
+
+  lbu t2, 0(t2) # node_size
 
   #index = (node - mempool) / sizeof(t_node)
   sub t3, a0, t0
@@ -443,7 +448,9 @@ handle_operation_valid:
 
   la s5, command_strings
   la s6, command_lengths
-  lbu s7, (0)n_commands
+  la s7, n_commands
+
+  lbu s7, 0(s7) # n_commands
 
   #for (uint8_t i = 0; i < n_commands; i++)
   li s4, 0 # i
@@ -575,7 +582,9 @@ is_valid_normal_cmd:
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_normal
   la s2, command_lengths_normal
-  lbu s4, (0)n_commands_normal
+  la s4, n_commands_normal
+
+  lbu s4, 0(s4) # n_commands_normal
 
   li s3, 0 # i
   #for (uint8_t i = 0; i < n_commands; i++)
@@ -633,7 +642,9 @@ is_valid_parameterized_cmd:
   #load statically compiled arrays (no stalls since each load is independent)
   la s1, command_strings_parameterized
   la s2, command_lengths_parameterized
-  lbu s3, (0)n_commands_parameterized
+  la s3, n_commands_parameterized
+
+  lbu s3, 0(s3) # n_commands_parameterized
 
   li s4, 0 # i
   #for (uint8_t i = 0; i < n_commands; i++)
