@@ -71,7 +71,7 @@ free_list: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 .text
 
 #void *alloc_node(void)
-malloc:
+alloc_node:
   la t0, node_size
   la t1, max_nodes
   la t2, mempool
@@ -82,19 +82,19 @@ malloc:
 
   #for (i = 0; i < max_nodes; i++)
   li t4, 0 #i = 0
-  malloc_loop:
-    bgeu t4, t1, malloc_full
+  alloc_node_loop:
+    bgeu t4, t1, alloc_node_full
 
     add t5, t3, t4
     lbu t6, 0(t5)
-    beqz t6, malloc_found #if (free_list[i] == 0)
+    beqz t6, alloc_node_found #if (free_list[i] == 0)
 
     addi t4, t4, 1
-    j malloc_loop
-malloc_full:
+    j alloc_node_loop
+alloc_node_full:
   li a0, 0
   ret
-malloc_found:
+alloc_node_found:
   li t6, 1
   sb t6, 0(t5) #free_list[i] = 1
 
@@ -117,9 +117,9 @@ list_add:
   mv s1, a1 #tail
   mv s2, a2 #data
 
-  #t_node *new_node = malloc(sizeof(t_node));
+  #t_node *new_node = alloc_node(sizeof(t_node));
   li a0, 5
-  jal malloc
+  jal alloc_node
   mv t0, a0 #new_node
   beqz t0, exit #if (new_node == NULL)
 
@@ -263,12 +263,140 @@ list_print_end:
 
   ret
 
-#TODO
 #void sort(t_node **head, t_node **tail, const char data)
 list_sort:
+  addi sp, sp, -4
+  sw ra, 0(sp)
 
-#TODO
+  #save S registers on the stack in order to make space
+  addi sp, sp, -24
+  sw s0, 0(sp)
+  sw s1, 4(sp)
+  sw s2, 8(sp)
+  sw s3, 12(sp)
+  sw s4, 16(sp)
+  sw s5, 20(sp)
+
+  lw s0, 0(a0) #*head
+  lw s1, 0(a1) #*tail
+
+  beq a0, a1, list_sort_end # if (*head == *tail) -> return
+
+  mv t2, s0 #t_node *slow = *head;
+  mv t3, s0 #t_node *fast = *head;
+  list_sort_loop:
+    lw t4, 1(t3)
+    beqz t4, list_sort_loop_end
+    lw t5, 1(t4)
+    beqz t5, list_sort_loop_end
+
+    lw t2, 1(t2) #slow = slow->next
+    mv t3, t5 #fast = fast->next->next
+
+    j list_sort_loop
+  list_sort_loop_end:
+
+  mv s2, s0 #t_node *head_a = *head;
+  mv s3, t2 #t_node *tail_a = slow;
+  lw s4, 1(t2) #t_node *head_b = slow->next;
+  mv s5, t1 #t_node *tail_b = *tail;
+  sw zero, 1(t2) #slow->next = NULL;
+
+  mv a0, s2
+  mv a1, s3
+  jal list_sort #sort(head_a, tail_a)
+
+  mv a0, s4
+  mv a1, s5
+  jal list_sort #sort(head_b, tail_b)
+
+  mv a0, s0
+  mv a1, s1
+  mv a2, s2
+  mv a3, s4
+  jal merge #merge(head, tail, head_a, head_b)
+
+list_sort_end:
+
+  #restore S registers from the stack
+  lw s0, 0(sp)
+  lw s1, 4(sp)
+  lw s2, 8(sp)
+  lw s3, 12(sp)
+  lw s4, 16(sp)
+  lw s5, 20(sp)
+  addi sp, sp, 24
+
+  lw ra, 0(sp)
+  addi sp, sp, 4
+
+  ret
+
 #void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
+list_merge:
+  li t0, 0 #t_node *current = NULL;
+  li t1, 0 #t_node *chosen = NULL;
+
+  addi sp, sp, -8
+  mv t2, sp #t_node *nodes[2]
+  sw a2, 0(t2) #nodes[0] = a
+  sw a3, 4(t2) #nodes[1] = b
+
+  lbu t3, 0(a2)
+  lbu t4, 0(a3)
+  sltu t3, t4, t3 #int8_t idx = (b->data < a->data)
+
+  add t4, t2, t3 #nodes + idx
+  lw t1, 0(t4) #chosen = nodes[idx]
+  mv t0, t1 #current = chosen
+  sw t0, 0(a0) #*head = current
+  lw t1, 1(t1) #chosen = chosen->next
+  sw t1, 0(t4) #nodes[idx] = chosen
+
+  lw a2, 0(t2) #a = nodes[0]
+  lw a3, 4(t2) #b = nodes[1]
+
+  list_merge_loop:
+    snez t3, a2
+    snez t4, a3
+    and t3, t3, t4
+    beqz t3, list_merge_loop_end #while ((a != NULL) & (b != NULL))
+
+    sltu t3, a3, a2 #int8_t idx = (b->data < a->data)
+    add t4, t2, t3 #nodes + idx
+    lw t1, 0(t4) #chosen = nodes[idx]
+    sw t1, 1(t0) #current->next = chosen
+    mv t0, t1 #current = chosen
+    lw t1, 1(t1) #chosen = chosen->next
+    sw t1, 0(t4) #nodes[idx] = chosen
+
+    lw a2, 0(t2) #a = nodes[0]
+    lw a3, 4(t2) #b = nodes[1]
+
+    j list_merge_loop
+  list_merge_loop_end:
+
+  snez t3, a3
+  add t4, t2, t3 #nodes + idx
+  lw t1, 0(t4) #chosen = nodes[idx]
+
+  sw t1, 1(t0) #current->next = chosen
+  mv t0, t1 #current = chosen
+
+  list_merge_tail_loop:
+    #while (current->next)
+    lw t1, 1(t0)
+    beqz t1, list_merge_tail_loop_end
+
+    lw t0, 1(t0) #current = current->next
+
+    j list_merge_tail_loop
+  list_merge_tail_loop_end:
+
+  sw t0, 0(a1) #*tail = current
+
+  addi sp, sp, 8 #free the stack array
+  ret
 
 #void rev(t_node **head, t_node **tail, const char data)
 list_rev:
@@ -287,13 +415,13 @@ list_rev:
 
   #while (current != NULL)
   list_rev_loop:
-    beqz t0, list_rev_end_loop
+    beqz t0, list_rev_loop_end
     lw t3, 1(t0) #next = current->next
     sw t2, 1(t0) #current->next = prev
     mv t2, t0 #prev = current
     mv t0, t3 #current = next
     j list_rev_loop
-  list_rev_end_loop:
+  list_rev_loop_end:
 
   sw t2, 0(a0) #*head = prev
   sw t1, 0(a1) #*tail = original_head
@@ -344,7 +472,7 @@ tokenize:
 
   #while (c != '\0')
   tokenize_loop:
-    beqz t1, tokenize_end_loop
+    beqz t1, tokenize_loop_end
 
     #is_delim = (c == sep)
     xor t2, t1, a1
@@ -359,7 +487,7 @@ tokenize:
     addi a0, a0, 1 #input++
     lb t1, 0(a0) #c = *input
     j tokenize_loop
-  tokenize_end_loop:
+  tokenize_loop_end:
 
   #return n_commands
   mv a0, t0
@@ -382,7 +510,7 @@ run:
 
   #while (n_commands > 0)
   run_loop:
-    beqz s3, run_end_loop
+    beqz s3, run_loop_end
     addi s3, s3, -1
 
     #input += (input[0] == ' ')
@@ -403,7 +531,7 @@ run:
     add s2, s2, t0
 
     j run_loop
-  run_end_loop:
+  run_loop_end:
 
   lw ra, 0(sp)
   addi sp, sp, 4
@@ -536,7 +664,7 @@ strnmatch:
 
   #while (n > 0)
   strnmatch_loop:
-    beqz a2, strnmatch_end_loop
+    beqz a2, strnmatch_loop_end
     addi a2, a2, -1
 
     lb t2, 0(a0) #c1
@@ -573,7 +701,7 @@ strnmatch:
     mul a2, a2, t2
 
     j strnmatch_loop
-  strnmatch_end_loop:
+  strnmatch_loop_end:
 
   #return result & safe_args
   and a0, t0, t1
@@ -604,7 +732,7 @@ is_valid_normal_cmd:
   li s3, 0 #i
   #for (uint8_t i = 0; i < n_commands; i++)
   is_valid_normal_cmd_loop:
-    beq s4, s3, is_valid_normal_cmd_end_loop
+    beq s4, s3, is_valid_normal_cmd_loop_end
 
     slli t0, s3, 2
     add t0, s1, t0
@@ -624,7 +752,7 @@ is_valid_normal_cmd:
 
     #if (!valid) -> continue
     beqz t1, is_valid_normal_cmd_loop
-  is_valid_normal_cmd_end_loop:
+  is_valid_normal_cmd_loop_end:
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -666,7 +794,7 @@ is_valid_parameterized_cmd:
   li s4, 0 #i
   #for (uint8_t i = 0; i < n_commands; i++)
   is_valid_parameterized_cmd_loop:
-    beq s4, s3, is_valid_parameterized_cmd_end_loop
+    beq s4, s3, is_valid_parameterized_cmd_loop_end
 
     add s5, s2, s4
     lbu s5, 0(s5) # uint8_t command_len = command_lengths[i]
@@ -691,7 +819,7 @@ is_valid_parameterized_cmd:
     add a0, s0, s5
     jal is_valid_args
     mv t1, a0 #is_valid
-  is_valid_parameterized_cmd_end_loop:
+  is_valid_parameterized_cmd_loop_end:
 
   #restore S registers from the stack
   lw s0, 0(sp)
@@ -737,12 +865,12 @@ strlen:
   #while (*s != '\0')
   strlen_loop:
     lb t1, 0(a0) #c
-    beqz t1, strlen_end_loop
+    beqz t1, strlen_loop_end
 
     addi t0, t0, 1
     addi a0, a0, 1
     j strlen_loop
-  strlen_end_loop:
+  strlen_loop_end:
 
   #return len
   mv a0, t0

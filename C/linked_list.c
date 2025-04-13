@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-12 18:57:10                                                
+last edited: 2025-04-13 15:34:00                                                
 
 ================================================================================*/
 
@@ -172,7 +172,7 @@ static void merge(t_node **head, t_node **tail, t_node *a, t_node *b)
   t_node *current = NULL;
   t_node *chosen = NULL;
   t_node *nodes[2] = {a, b};
-  bool idx = (b->data < a->data); //i choose the smaller one
+  uint8_t idx = (b->data < a->data); //i choose the smaller one
 
   //set the head
   chosen = nodes[idx];
