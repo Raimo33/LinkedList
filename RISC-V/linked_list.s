@@ -322,6 +322,9 @@ list_sort:
   addi a1, sp, 12
   jal list_sort #sort(&head_b, &tail_b)
 
+  lw s2, 0(sp) #head_a
+  lw s4, 8(sp) #head_b
+
   addi sp, sp, 16 #free the pointers from the stack
 
   mv a0, s6
