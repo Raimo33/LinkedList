@@ -13,7 +13,7 @@
 
 head_ptr: .word 0x0
 tail_ptr: .word 0x0
-list_input: .string "ADD(x) ~ ADD(y) ~ ADD(z) ~ ADD(w) ~ REV ~ PRINT"
+list_input: .string "ADD(2) ~ ADD(1) ~ SORTT ~ S ORT ~ SORT() ~ SSORT ~ PRINT"
 
 heap_ptr: .word 0x00FFFFFF
 
@@ -314,7 +314,7 @@ list_sort:
   mv a1, s1
   mv a2, s2
   mv a3, s4
-  jal merge #merge(head, tail, head_a, head_b)
+  jal list_merge #merge(head, tail, head_a, head_b)
 
 list_sort_end:
 
