@@ -13,7 +13,7 @@
 
 head_ptr: .word 0x0
 tail_ptr: .word 0x0
-list_input: .string "ADD(2) ~ ADD(1) ~ SORTT ~ S ORT ~ SORT() ~ SSORT ~ PRINT"
+list_input: .string "ADD(3) ~ ADD(1) ~ ADD(2) ~ SORT ~ PRINT"
 
 heap_ptr: .word 0x00FFFFFF
 
@@ -269,18 +269,23 @@ list_sort:
   sw ra, 0(sp)
 
   #save S registers on the stack in order to make space
-  addi sp, sp, -24
+  addi sp, sp, -32
   sw s0, 0(sp)
   sw s1, 4(sp)
   sw s2, 8(sp)
   sw s3, 12(sp)
   sw s4, 16(sp)
   sw s5, 20(sp)
+  sw s6, 24(sp)
+  sw s7, 28(sp)
+
+  mv s6, a0 #head
+  mv s7, a1 #tail
 
   lw s0, 0(a0) #*head
   lw s1, 0(a1) #*tail
 
-  beq a0, a1, list_sort_end # if (*head == *tail) -> return
+  beq s0, s1, list_sort_end # if (*head == *tail) -> return
 
   mv t2, s0 #t_node *slow = *head;
   mv t3, s0 #t_node *fast = *head;
@@ -299,19 +304,28 @@ list_sort:
   mv s2, s0 #t_node *head_a = *head;
   mv s3, t2 #t_node *tail_a = slow;
   lw s4, 1(t2) #t_node *head_b = slow->next;
-  mv s5, t1 #t_node *tail_b = *tail;
+  mv s5, s1 #t_node *tail_b = *tail;
   sw zero, 1(t2) #slow->next = NULL;
 
-  mv a0, s2
-  mv a1, s3
-  jal list_sort #sort(head_a, tail_a)
+  #save pointers on the stack to reference them by address
+  addi sp, sp, -16
+  sw s2, 0(sp)
+  sw s3, 4(sp)
+  sw s4, 8(sp)
+  sw s5, 12(sp)
 
-  mv a0, s4
-  mv a1, s5
-  jal list_sort #sort(head_b, tail_b)
+  addi a0, sp, 0
+  addi a1, sp, 4
+  jal list_sort #sort(&head_a, &tail_a)
 
-  mv a0, s0
-  mv a1, s1
+  addi a0, sp, 8
+  addi a1, sp, 12
+  jal list_sort #sort(&head_b, &tail_b)
+
+  addi sp, sp, 16 #free the pointers from the stack
+
+  mv a0, s6
+  mv a1, s7
   mv a2, s2
   mv a3, s4
   jal list_merge #merge(head, tail, head_a, head_b)
@@ -325,7 +339,9 @@ list_sort_end:
   lw s3, 12(sp)
   lw s4, 16(sp)
   lw s5, 20(sp)
-  addi sp, sp, 24
+  lw s6, 24(sp)
+  lw s7, 28(sp)
+  addi sp, sp, 32
 
   lw ra, 0(sp)
   addi sp, sp, 4
@@ -346,6 +362,7 @@ list_merge:
   lbu t4, 0(a3)
   sltu t3, t4, t3 #int8_t idx = (b->data < a->data)
 
+  slli t3, t3, 2
   add t4, t2, t3 #nodes + idx
   lw t1, 0(t4) #chosen = nodes[idx]
   mv t0, t1 #current = chosen
@@ -362,7 +379,11 @@ list_merge:
     and t3, t3, t4
     beqz t3, list_merge_loop_end #while ((a != NULL) & (b != NULL))
 
-    sltu t3, a3, a2 #int8_t idx = (b->data < a->data)
+    lbu t3, 0(a2)
+    lbu t4, 0(a3)
+    sltu t3, t4, t3 #int8_t idx = (b->data < a->data)
+
+    slli t3, t3, 2
     add t4, t2, t3 #nodes + idx
     lw t1, 0(t4) #chosen = nodes[idx]
     sw t1, 1(t0) #current->next = chosen
@@ -377,6 +398,8 @@ list_merge:
   list_merge_loop_end:
 
   snez t3, a3
+
+  slli t3, t3, 2
   add t4, t2, t3 #nodes + idx
   lw t1, 0(t4) #chosen = nodes[idx]
 
@@ -388,7 +411,7 @@ list_merge:
     lw t1, 1(t0)
     beqz t1, list_merge_tail_loop_end
 
-    lw t0, 1(t0) #current = current->next
+    mv t0, t1 #current = current->next
 
     j list_merge_tail_loop
   list_merge_tail_loop_end:
