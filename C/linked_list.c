@@ -5,15 +5,12 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-13 15:34:00                                                
+last edited: 2025-04-28 17:11:42                                                
 
 ================================================================================*/
 
 #include <stdlib.h>
 #include <unistd.h>
-
-//TODO remove
-#include <stdio.h>
 
 #include "linked_list.h"
 

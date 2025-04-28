@@ -5,7 +5,7 @@ Creator: Claudio Raimondi
 Email: claudio.raimondi@pm.me                                                   
 
 created at: 2025-04-04 16:42:53                                                 
-last edited: 2025-04-12 18:57:10                                                
+last edited: 2025-04-28 17:11:42                                                
 
 ================================================================================*/
 
@@ -229,7 +229,7 @@ int main(void)
     RUN_TEST(input, expected);
   }
 
-  // Print - print twice in a row
+  //Print - print twice in a row
   {
     char input[] = "ADD(x) ~ PRINT ~ PRINT";
     char expected[] = "xx";
