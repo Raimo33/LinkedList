@@ -1,3 +1,9 @@
 .vscode/
 *.o
 *.out
+*.aux
+*.log
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.fls
