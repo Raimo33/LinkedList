@@ -3,6 +3,9 @@
 \usepackage[T1]{fontenc}
 \usepackage{geometry}
 \usepackage{xcolor}
+\usepackage{pdfpages}
+\usepackage{graphicx}
+\usepackage{subcaption}
 
 \usepackage[
     colorlinks=true,
@@ -58,12 +61,12 @@ Docente: Prof. Zoppi}
 \subsection{Obiettivi del progetto}
 
 Il progetto consiste nell'implementazione di una \textbf{linked list} in assembly \textbf{RISC-V} 32-bit. 
-La lista supporta operazioni di \textbf{inserimento}, \textbf{cancellazione}, \textbf{ordinamento}, \textbf{stampa} e \textbf{inversione} su elementi di tipo intero, ed è progettata per essere il più efficiente possibile mantenento allo stesso tempo una buona modularità.
+La lista supporta operazioni di \textbf{inserimento}, \textbf{cancellazione}, \textbf{ordinamento}, \textbf{stampa} e \textbf{inversione} su elementi di tipo intero, ed è progettata per essere il più efficiente possibile mantenendo allo stesso tempo una buona modularità.
 
 \subsection{Approccio ed Ambiente di sviluppo}
 
 Per semplificare lo sviluppo ed il testing ho svolto il ruolo del compilatore: sviluppando prima un progetto funzionante in \textbf{C}, e successivamente traducendolo meticolosamente in assembly RISC-V.
-In questo modo ho ridotto al minimo la possiblità di verificarsi di errori umani, e ho potuto apprendere il punto di vista del compilatore.
+In questo modo ho ridotto al minimo la possibilità di verificarsi di errori umani, e ho potuto apprendere il punto di vista del compilatore.
 
 \subsection{Uso della memoria e dei registri}
 
@@ -98,7 +101,7 @@ list_functions:
 
 Il parsing dell'input è stato implementato in 3 fasi:
 \begin{itemize}
-    \item \textbf{Tokenizzazione}: l'input viene diviso in-place in token, sostituendo gli spazi con il carattere '\texttt{\textbackslash0}'.
+    \item \textbf{Tokenizzazione}: l'input viene diviso in-place in token, sostituendo i delimitatori con il carattere '\texttt{\textbackslash0}'.
     \item \textbf{Sanificazione}: per ogni token, viene verificato che corrisponda ad un comando valido, altrimenti viene ignorato.
     \item \textbf{Esecuzione}: per ogni token valido, viene chiamata la funzione corrispondente nell'array.
 \end{itemize}
@@ -111,7 +114,7 @@ La chiamata a \texttt{malloc} non è gestita dal kernel come in C, ma deve esser
 
 \subsection{Malloc}
 
-Per implementatare la funzione di allocazione dinamica della memoria, ho simulato un heap tramite una regione di memoria predefinita, che viene gestita tramite una free-list.
+Per implementare la funzione di allocazione dinamica della memoria, ho simulato un heap tramite una regione di memoria predefinita, che viene gestita tramite una free-list.
 
 \begin{lstlisting}[language=riscv]
 .data
@@ -170,9 +173,52 @@ Questa, anche se sembra una scelta facile, in realtà potrebbe essere subottimal
 \section{Analisi quantitativa e ottimizzazione}
 
 \subsection{Cache}
-% cache locality delle funzioni (immagine call graph.pdf)
+
+Per ottimizzare la località spaziale delle istruzioni, così da ridurre il numero di cache miss, le ho riordinate tenendo in mente diversi fattori:
+
+\begin{itemize}
+    \item le funzioni chiamate più frequentemente hanno priorità più alta
+    \item funzioni che si chiamano a vicenda sono vicine tra loro
+    \item l'utente è più propenso a chiamare le funzioni \texttt{add} e \texttt{print}
+    \item il branch predictor può favorire salti all'indietro
+\end{itemize}
+
+Eseguendo un semplice benchmark con il comando:
+
+\begin{center}
+\texttt{ADD(1)} $\sim$ \texttt{SORT} $\sim$ \texttt{REV} $\sim$ \texttt{DEL(1)} $\sim$ \texttt{ADD(1)} $\sim$ \texttt{PRINT}
+\end{center}
+
+otteniamo un \emph{cache miss} rate di circa 8\% per le \textbf{istruzioni}, e 2\% per i \textbf{dati}, indipendentemente dal tipo di cache:
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{assets/data_cache_miss.png}
+    \caption{Data Cache Miss}
+    \label{fig:data_cache_miss}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{assets/instruction_cache_miss.png}
+    \caption{Instruction Cache Miss}
+    \label{fig:instruction_cache_miss}
+  \end{subfigure}
+\end{figure}
 
 \subsection{Branches}
+
+Per ridurre al minimo il numero di branch mispredictions, e quindi di stalli, ho utilizzato tecniche branchless:
+
+\begin{itemize}
+  \item sacrificare lo short-circuiting utilizzando \textbf{operatori bitwise} invece di operatori logici (\texttt{\&} e \texttt{|} invece di \texttt{\&\&} e \texttt{||})
+  \item utilizzare variabili booleane come indici di array, come visto nella funzione \texttt{merge}
+  \item moltiplicazione per 0 e 1 (condizione e condizione opposta)
+\end{itemize}
+
+In questo modo, l'intero codice ha solo 24 salti condizionati.
 
 \section{Riferimenti}
 
